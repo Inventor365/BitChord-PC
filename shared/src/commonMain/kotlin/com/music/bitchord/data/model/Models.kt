@@ -405,6 +405,8 @@ data class ShelfItem(
     val thumbnailUrl: String?,
     val videoId: String?,
     val browseId: String?,
+    /** A track card's explicit badge; null for collections and cards that don't carry one. */
+    val isExplicit: Boolean? = null,
     /**
      * A music-video upload rather than a catalogue track: widescreen art, and a
      * picture the player can show. Drawn as a 16:9 card, as the web player does.

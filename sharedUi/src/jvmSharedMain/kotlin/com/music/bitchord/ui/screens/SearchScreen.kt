@@ -3,6 +3,7 @@ package com.music.bitchord.ui.screens
 import com.music.bitchord.ui.components.trackArtSize
 import androidx.compose.ui.layout.ContentScale
 import com.music.bitchord.data.model.toSong
+import com.music.bitchord.ui.components.BLOCKED_ROW_ALPHA
 import com.music.bitchord.ui.components.SwipeToQueueBox
 import com.music.bitchord.ui.components.contextClick
 import androidx.compose.ui.unit.Dp
@@ -16,6 +17,9 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import com.music.bitchord.ui.components.explicitGatedClick
+import com.music.bitchord.ui.components.ExplicitSongTitle
+import com.music.bitchord.ui.components.isExplicitBlocked
 import com.music.bitchord.ui.components.longPressMenuClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -511,13 +515,16 @@ private fun TopResultCard(
     onPlaylist: () -> Unit,
     onLongPress: () -> Unit,
     modifier: Modifier = Modifier,
+    explicitBlocked: Boolean = isExplicitBlocked(song),
 ) {
+    val play = explicitGatedClick(song, explicitBlocked, onPlay)
     Column(
         modifier = modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.background)
+            .alpha(if (explicitBlocked) BLOCKED_ROW_ALPHA else 1f)
             .padding(start = PAGE_GUTTER, end = PAGE_GUTTER, top = 18.dp, bottom = 8.dp)
-            .longPressMenuClickable(onClick = onPlay, onLongClick = onLongPress)
+            .longPressMenuClickable(onClick = play, onLongClick = onLongPress)
             .contextClick(onLongPress),
     ) {
         Text(
@@ -535,12 +542,11 @@ private fun TopResultCard(
             )
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                Text(
-                    text = song.title,
+                ExplicitSongTitle(
+                    song,
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
@@ -560,7 +566,7 @@ private fun TopResultCard(
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             OutlinedButton(
-                onClick = onPlay,
+                onClick = play,
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
             ) {
                 Icon(Icons.Rounded.PlayArrow, contentDescription = null)
@@ -743,11 +749,16 @@ private fun TypeaheadSongRow(
     onLongPress: (() -> Unit)? = null,
     isCurrent: Boolean = false,
     isPlaying: Boolean = false,
+    explicitBlocked: Boolean = isExplicitBlocked(song),
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .longPressMenuClickable(onClick = onClick, onLongClick = onLongPress)
+            .alpha(if (explicitBlocked) BLOCKED_ROW_ALPHA else 1f)
+            .longPressMenuClickable(
+                onClick = explicitGatedClick(song, explicitBlocked, onClick),
+                onLongClick = onLongPress,
+            )
             .contextClick(onLongPress)
             .padding(horizontal = PAGE_GUTTER, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -767,12 +778,10 @@ private fun TypeaheadSongRow(
         }
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
-            Text(
-                text = song.title,
+            ExplicitSongTitle(
+                song,
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
             )
             Spacer(Modifier.height(2.dp))
             Text(

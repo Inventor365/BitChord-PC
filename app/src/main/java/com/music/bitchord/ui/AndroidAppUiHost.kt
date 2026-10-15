@@ -10,12 +10,22 @@ import com.music.bitchord.data.canvas.CanvasArtwork
 import com.music.bitchord.data.canvas.CanvasRepository
 import com.music.bitchord.data.settings.AppSettings
 import com.music.bitchord.download.Downloads
+import com.music.bitchord.ui.components.ExplicitPrompt
+import kotlinx.coroutines.flow.MutableStateFlow
 
 /** The shared pages' settings and downloads, answered from the phone's own stores. */
 object AndroidAppUiHost : AppUiHost {
     override val swipeToPlayNext = AppSettings.swipeToPlayNext
     override val pinnedPlaylists = AppSettings.pinnedPlaylists
     override val librarySort = AppSettings.librarySort
+    override val blockExplicit = AppSettings.blockExplicit
+    override val explicitAllowed = AppSettings.explicitAllowed
+
+    /** The tapped blocked explicit song MainActivity's alert is asking about; null when none is. */
+    val explicitPrompt = MutableStateFlow<ExplicitPrompt?>(null)
+    override fun askExplicitBlocked(prompt: ExplicitPrompt) {
+        explicitPrompt.value = prompt
+    }
 
     @Composable
     override fun downloadedIds(): Set<String> {

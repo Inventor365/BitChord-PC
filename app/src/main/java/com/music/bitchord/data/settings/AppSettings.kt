@@ -412,6 +412,23 @@ object AppSettings {
     /** Once a song has been suggested or played this session, AutoPlay won't offer it again. */
     val dontRepeatSuggestions = MutableStateFlow(false)
 
+    /**
+     * "Block explicit songs": explicit songs are left out of AutoPlay and
+     * radio, skipped in the queue, and greyed out in lists. See
+     * [com.music.bitchord.playback.ExplicitFilter].
+     */
+    val blockExplicit = MutableStateFlow(false)
+
+    /** Video ids of explicit songs let through [blockExplicit] anyway, from the song menu or its prompt. */
+    val explicitAllowed = MutableStateFlow<Set<String>>(emptySet())
+
+    /**
+     * Prefer the catalogue audio release when the selected result is a music
+     * video. The video itself is still handed to the player first so its
+     * metadata appears immediately while the catalogue match is resolved.
+     */
+    val preferMusicOnly = MutableStateFlow(false)
+
     /** Analyzes audio waveform/envelope to align matching playback moment between versions. */
     val smartVersionAlignment = MutableStateFlow(true)
 
@@ -924,6 +941,9 @@ object AppSettings {
         showQueueHistory.value = prefs.getBoolean(KEY_SHOW_QUEUE_HISTORY, false)
         swipeToPlayNext.value = prefs.getBoolean(KEY_SWIPE_TO_PLAY_NEXT, false)
         dontRepeatSuggestions.value = prefs.getBoolean(KEY_DONT_REPEAT_SUGGESTIONS, false)
+        blockExplicit.value = prefs.getBoolean(KEY_BLOCK_EXPLICIT, false)
+        explicitAllowed.value = prefs.getStringSet(KEY_EXPLICIT_ALLOWED, null)?.toSet().orEmpty()
+        preferMusicOnly.value = prefs.getBoolean(KEY_PREFER_MUSIC_ONLY, false)
         smartVersionAlignment.value = prefs.getBoolean(KEY_SMART_VERSION_ALIGNMENT, true)
         reduceDynamicBlur.value = prefs.getBoolean(KEY_REDUCE_BLUR, false)
         liquidGlass.value = prefs.getBoolean(KEY_LIQUID_GLASS, false)
@@ -1334,6 +1354,22 @@ object AppSettings {
     fun setDontRepeatSuggestions(value: Boolean) {
         dontRepeatSuggestions.value = value
         prefs.edit().putBoolean(KEY_DONT_REPEAT_SUGGESTIONS, value).apply()
+    }
+
+    fun setBlockExplicit(value: Boolean) {
+        blockExplicit.value = value
+        prefs.edit().putBoolean(KEY_BLOCK_EXPLICIT, value).apply()
+    }
+
+    fun setExplicitAllowed(videoId: String, allowed: Boolean) {
+        val next = if (allowed) explicitAllowed.value + videoId else explicitAllowed.value - videoId
+        explicitAllowed.value = next
+        prefs.edit().putStringSet(KEY_EXPLICIT_ALLOWED, HashSet(next)).apply()
+    }
+
+    fun setPreferMusicOnly(value: Boolean) {
+        preferMusicOnly.value = value
+        prefs.edit().putBoolean(KEY_PREFER_MUSIC_ONLY, value).apply()
     }
 
     fun setSmartVersionAlignment(value: Boolean) {
@@ -2114,6 +2150,9 @@ object AppSettings {
     private const val KEY_SHOW_QUEUE_HISTORY = "show_queue_history"
     private const val KEY_SWIPE_TO_PLAY_NEXT = "swipe_to_play_next"
     private const val KEY_DONT_REPEAT_SUGGESTIONS = "dont_repeat_suggestions"
+    private const val KEY_BLOCK_EXPLICIT = "block_explicit"
+    private const val KEY_EXPLICIT_ALLOWED = "explicit_allowed"
+    private const val KEY_PREFER_MUSIC_ONLY = "prefer_music_only"
     private const val KEY_SMART_VERSION_ALIGNMENT = "smart_version_alignment"
     private const val KEY_REDUCE_BLUR = "reduce_dynamic_blur"
     private const val KEY_LIQUID_GLASS = "liquid_glass"
