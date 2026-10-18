@@ -74,6 +74,7 @@ import androidx.compose.material.icons.rounded.SignalCellularAlt
 import androidx.compose.material.icons.rounded.SmartDisplay
 import androidx.compose.material.icons.rounded.Storage
 import androidx.compose.material.icons.rounded.SurroundSound
+import androidx.compose.material.icons.rounded.Title
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.VolumeOff
 import androidx.compose.material.icons.rounded.WebAssetOff
@@ -217,6 +218,7 @@ fun SettingsScreen(
     val listenTogetherButton by AppSettings.showListenTogetherButton.collectAsStateWithLifecycle()
     val externalLinks by AppSettings.externalLinks.collectAsStateWithLifecycle()
     val reduceAnimation by AppSettings.reduceAnimation.collectAsStateWithLifecycle()
+    val navLabels by AppSettings.showNavLabels.collectAsStateWithLifecycle()
     val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
     val liquidGlass by AppSettings.liquidGlass.collectAsStateWithLifecycle()
     val progressiveBlur by AppSettings.progressiveBlur.collectAsStateWithLifecycle()
@@ -879,6 +881,25 @@ fun SettingsScreen(
                         onCheckedChange = AppSettings::setProgressiveBlur,
                     )
                 }
+            }
+            val navLabelsTitle = stringResource(R.string.show_nav_labels)
+            row(navLabelsTitle, "navigation", "tabs", "bar", "labels", "icons") {
+                SettingsRow(
+                    icon = Icons.Rounded.Title,
+                    title = navLabelsTitle,
+                    subtitle = stringResource(R.string.show_nav_labels_subtitle),
+                    trailing = {
+                        Switch(
+                            checked = navLabels,
+                            onCheckedChange = AppSettings::setShowNavLabels,
+                            colors = SwitchDefaults.colors(
+                                checkedTrackColor = MaterialTheme.colorScheme.primary,
+                                checkedBorderColor = MaterialTheme.colorScheme.primary,
+                            ),
+                        )
+                    },
+                    onClick = { AppSettings.setShowNavLabels(!navLabels) },
+                )
             }
             // Left out where the player won't honour it: a window too wide for
             // the player to fill and too narrow to stand a page beside it keeps

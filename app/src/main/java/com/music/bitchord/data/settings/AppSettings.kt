@@ -376,6 +376,9 @@ object AppSettings {
     /** Freezes the main player's mesh gradient instead of letting it drift/crossfade. */
     val reduceAnimation = MutableStateFlow(false)
 
+    /** Label each tab of the bottom navigation bar under its icon. Off leaves icons only. */
+    val showNavLabels = MutableStateFlow(true)
+
     /**
      * Whether the welcome pages (party name, then YouTube sign-in) have been
      * through. Absent rather than true for anyone updating from a build that
@@ -908,6 +911,7 @@ object AppSettings {
         showListenTogetherButton.value = prefs.getBoolean(KEY_LISTEN_TOGETHER_BUTTON, true)
         externalLinks.value = prefs.getBoolean(KEY_EXTERNAL_LINKS, true)
         reduceAnimation.value = prefs.getBoolean(KEY_REDUCE_ANIMATION, false)
+        showNavLabels.value = prefs.getBoolean(KEY_NAV_LABELS, true)
         onboardingComplete.value = prefs.getBoolean(KEY_ONBOARDING_COMPLETE, false)
         highPerformanceMode.value = prefs.getBoolean(KEY_HIGH_PERFORMANCE_MODE, false)
         performanceRefreshRate.value = normalizePerformanceRefreshRate(
@@ -1506,6 +1510,11 @@ object AppSettings {
         prefs.edit().putBoolean(KEY_CANVAS_OVER_CELLULAR, value).apply()
     }
 
+    fun setShowNavLabels(value: Boolean) {
+        showNavLabels.value = value
+        prefs.edit().putBoolean(KEY_NAV_LABELS, value).apply()
+    }
+
     fun setSpotifyCanvasAutoHide(value: Boolean) {
         spotifyCanvasAutoHide.value = value
         prefs.edit().putBoolean(KEY_SPOTIFY_CANVAS_AUTO_HIDE, value).apply()
@@ -2094,6 +2103,7 @@ object AppSettings {
     private const val KEY_EXTERNAL_LINKS = "external_links"
     private const val KEY_CACHE_LIMIT = "audio_cache_limit_bytes"
     private const val KEY_REDUCE_ANIMATION = "reduce_animation"
+    private const val KEY_NAV_LABELS = "show_nav_labels"
     private const val KEY_ONBOARDING_COMPLETE = "onboarding_complete"
     private const val KEY_HIGH_PERFORMANCE_MODE = "high_performance_mode"
     private const val KEY_PERFORMANCE_REFRESH_RATE = "performance_refresh_rate"
