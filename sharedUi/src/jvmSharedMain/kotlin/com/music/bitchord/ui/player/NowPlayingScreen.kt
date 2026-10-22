@@ -1048,6 +1048,7 @@ fun NowPlayingScreen(
     // back has to close it first rather than taking the drawer out from
     // under it.
     PlayerBackHandler(enabled = showAudioOutput) { showAudioOutput = false }
+    PlayerBackHandler(enabled = OutputExtrasUi.open) { OutputExtrasUi.open = false }
 
     PlayerBackHandler(enabled = showVideoQuality) { showVideoQuality = false }
 
@@ -1560,6 +1561,11 @@ fun NowPlayingScreen(
                 onDismiss = { showVideoQuality = false },
             )
         }
+        OutputExtrasSheet(
+            hazeState = playerHaze,
+            visible = OutputExtrasUi.open,
+            onDismiss = { OutputExtrasUi.open = false },
+        )
         if (showAudioOutput) {
             AudioOutputSheet(
                 hazeState = playerHaze,
@@ -3513,6 +3519,14 @@ fun NowPlayingScreen(
                                     onClick = onToggleLike,
                                     active = liked,
                                     haptic = if (liked) Haptic.ToggleOff else Haptic.ToggleOn,
+                                )
+                                Spacer(Modifier.width(8.dp))
+                            }
+                            PlayerPlatform.host.OutputExtrasPainter()?.let { budsPainter ->
+                                CirclePainterGlyph(
+                                    painter = budsPainter,
+                                    contentDescription = "Earbuds",
+                                    onClick = { OutputExtrasUi.open = true },
                                 )
                                 Spacer(Modifier.width(8.dp))
                             }
