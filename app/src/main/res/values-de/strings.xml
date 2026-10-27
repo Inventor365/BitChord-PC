@@ -1364,8 +1364,7 @@
     <string name="wear_os_code_hint">Kopplungscode</string>
     <string name="wear_os_done">Fertig</string>
     <string name="signed_by">Signiert von %1$s</string>
-    <string name="song_info">Titelinformationen</string>
-    <string name="song_info_album">Album</string>
+    <string name="song_info">Titelinformationen</string>    <string name="song_info_album">Album</string>
     <string name="song_info_release_date">Veröffentlichungsdatum</string>
     <string name="song_info_views">Wiedergaben / Aufrufe</string>
     <string name="song_info_likes">Gefällt mir</string>
@@ -1395,4 +1394,8 @@
     <string name="download_addon_left_out_title">Download ohne %1$s</string>
     <string name="download_addon_not_allowed">%1$s erlaubt keine Downloads, deshalb werden deine Songs aus deinen anderen Quellen gespeichert.</string>
     <string name="download_addon_needs_lossless_output">%1$s liefert Musik nur, solange kabelgebundene, USB- oder LDAC-Kopfhörer verbunden sind. Downloads überspringen es, bis welche verbunden sind, deshalb werden deine Songs aus deinen anderen Quellen gespeichert.</string>
+    <string name="save_as_playlist">Save as playlist</string>
+    <string name="save_queue_as_playlist">Save queue as playlist</string>
+    <string name="save_radio_as_playlist">Save radio as playlist</string>
+    <string name="playlist_created">Playlist created: %1$s</string>
 </resources>

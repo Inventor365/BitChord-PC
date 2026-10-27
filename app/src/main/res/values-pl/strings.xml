@@ -1404,8 +1404,7 @@
     <string name="wear_os_code_hint">Kod parowania</string>
     <string name="wear_os_done">Gotowe</string>
     <string name="signed_by">Podpisano przez %1$s</string>
-    <string name="song_info">Informacje o utworze</string>
-    <string name="song_info_album">Album</string>
+    <string name="song_info">Informacje o utworze</string>    <string name="song_info_album">Album</string>
     <string name="song_info_release_date">Data wydania</string>
     <string name="song_info_views">Odtworzenia / wyświetlenia</string>
     <string name="song_info_likes">Polubienia</string>
@@ -1435,4 +1434,8 @@
     <string name="download_addon_left_out_title">Pobieranie bez %1$s</string>
     <string name="download_addon_not_allowed">%1$s nie pozwala na pobieranie, więc utwory są zapisywane z innych źródeł.</string>
     <string name="download_addon_needs_lossless_output">%1$s udostępnia muzykę tylko przy podłączonych słuchawkach przewodowych, USB lub klasy LDAC. Pobieranie je pomija, dopóki takich nie podłączysz, więc utwory są zapisywane z innych źródeł.</string>
+    <string name="save_as_playlist">Save as playlist</string>
+    <string name="save_queue_as_playlist">Save queue as playlist</string>
+    <string name="save_radio_as_playlist">Save radio as playlist</string>
+    <string name="playlist_created">Playlist created: %1$s</string>
 </resources>

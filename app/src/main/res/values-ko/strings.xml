@@ -1245,4 +1245,8 @@
     <string name="download_addon_left_out_title">%1$s 없이 다운로드 중</string>
     <string name="download_addon_not_allowed">%1$s에서 다운로드를 허용하지 않아 다른 소스에서 노래를 저장합니다.</string>
     <string name="download_addon_needs_lossless_output">%1$s은(는) 유선, USB 또는 LDAC급 헤드폰이 연결된 경우에만 음악을 제공합니다. 연결될 때까지 다운로드에서 제외되므로 다른 소스에서 노래를 저장합니다.</string>
+    <string name="save_as_playlist">Save as playlist</string>
+    <string name="save_queue_as_playlist">Save queue as playlist</string>
+    <string name="save_radio_as_playlist">Save radio as playlist</string>
+    <string name="playlist_created">Playlist created: %1$s</string>
 </resources>

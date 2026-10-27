@@ -1336,8 +1336,7 @@
     <string name="wear_os_code_hint">Código de vinculación</string>
     <string name="wear_os_done">Hecho</string>
     <string name="signed_by">Firmado por %1$s</string>
-    <string name="song_info">Información de la canción</string>
-    <string name="song_info_album">Álbum</string>
+    <string name="song_info">Información de la canción</string>    <string name="song_info_album">Álbum</string>
     <string name="song_info_release_date">Fecha de lanzamiento</string>
     <string name="song_info_views">Reproducciones / visualizaciones</string>
     <string name="song_info_likes">Me gusta</string>
@@ -1367,4 +1366,8 @@
     <string name="download_addon_left_out_title">Descargando sin %1$s</string>
     <string name="download_addon_not_allowed">%1$s no permite descargas, así que tus canciones se guardan desde tus otras fuentes.</string>
     <string name="download_addon_needs_lossless_output">%1$s solo sirve música con auriculares con cable, USB o de clase LDAC conectados. Las descargas lo omiten hasta que conectes unos, así que tus canciones se guardan desde tus otras fuentes.</string>
+    <string name="save_as_playlist">Save as playlist</string>
+    <string name="save_queue_as_playlist">Save queue as playlist</string>
+    <string name="save_radio_as_playlist">Save radio as playlist</string>
+    <string name="playlist_created">Playlist created: %1$s</string>
 </resources>

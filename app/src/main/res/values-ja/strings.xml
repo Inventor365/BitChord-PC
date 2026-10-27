@@ -1342,8 +1342,7 @@
     <string name="wear_os_code_hint">ペア設定コード</string>
     <string name="wear_os_done">完了</string>
     <string name="signed_by">%1$s のサイン</string>
-    <string name="song_info">曲の情報</string>
-    <string name="song_info_album">アルバム</string>
+    <string name="song_info">曲の情報</string>    <string name="song_info_album">アルバム</string>
     <string name="song_info_release_date">リリース日</string>
     <string name="song_info_views">再生回数 / 視聴回数</string>
     <string name="song_info_likes">高評価</string>
@@ -1373,4 +1372,8 @@
     <string name="download_addon_left_out_title">%1$sを使わずにダウンロード中</string>
     <string name="download_addon_not_allowed">%1$sはダウンロードを許可していないため、曲は他のソースから保存されます。</string>
     <string name="download_addon_needs_lossless_output">%1$sは有線、USB、またはLDACクラスのヘッドホンが接続されているときのみ音楽を提供します。接続されるまでダウンロードでは使用されないため、曲は他のソースから保存されます。</string>
+    <string name="save_as_playlist">Save as playlist</string>
+    <string name="save_queue_as_playlist">Save queue as playlist</string>
+    <string name="save_radio_as_playlist">Save radio as playlist</string>
+    <string name="playlist_created">Playlist created: %1$s</string>
 </resources>

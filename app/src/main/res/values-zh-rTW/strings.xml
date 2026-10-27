@@ -1341,8 +1341,7 @@
     <string name="artist_signatures_unconfigured">尚未設定 — 點選設定 API URL</string>
     <string name="artist_signatures_test_failed">無法連接該 URL 的 API</string>
     <string name="signed_by">由 %1$s 簽名</string>
-    <string name="song_info">歌曲資訊</string>
-    <string name="song_info_album">專輯</string>
+    <string name="song_info">歌曲資訊</string>    <string name="song_info_album">專輯</string>
     <string name="song_info_release_date">發行日期</string>
     <string name="song_info_views">播放 / 觀看次數</string>
     <string name="song_info_likes">喜歡次數</string>
@@ -1372,4 +1371,8 @@
     <string name="download_addon_left_out_title">正在下載（不使用 %1$s）</string>
     <string name="download_addon_not_allowed">%1$s 不允許下載，因此你的歌曲將從其他來源儲存。</string>
     <string name="download_addon_needs_lossless_output">%1$s 僅在連接有線、USB 或 LDAC 等級耳機時提供音樂。在連接此類耳機前，下載會略過它，因此你的歌曲將從其他來源儲存。</string>
+    <string name="save_as_playlist">Save as playlist</string>
+    <string name="save_queue_as_playlist">Save queue as playlist</string>
+    <string name="save_radio_as_playlist">Save radio as playlist</string>
+    <string name="playlist_created">Playlist created: %1$s</string>
 </resources>

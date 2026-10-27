@@ -1396,8 +1396,7 @@
     <string name="wear_os_code_hint">Код подключения</string>
     <string name="wear_os_done">Готово</string>
     <string name="signed_by">Подпись: %1$s</string>
-    <string name="song_info">Информация о песне</string>
-    <string name="song_info_album">Альбом</string>
+    <string name="song_info">Информация о песне</string>    <string name="song_info_album">Альбом</string>
     <string name="song_info_release_date">Дата выпуска</string>
     <string name="song_info_views">Прослушивания / просмотры</string>
     <string name="song_info_likes">Отметки «Нравится»</string>
@@ -1427,4 +1426,8 @@
     <string name="download_addon_left_out_title">Загрузка без %1$s</string>
     <string name="download_addon_not_allowed">%1$s не разрешает загрузки, поэтому треки сохраняются из других ваших источников.</string>
     <string name="download_addon_needs_lossless_output">%1$s отдаёт музыку, только когда подключены проводные, USB или LDAC-наушники. Пока их нет, загрузки его пропускают, поэтому треки сохраняются из других ваших источников.</string>
+    <string name="save_as_playlist">Save as playlist</string>
+    <string name="save_queue_as_playlist">Save queue as playlist</string>
+    <string name="save_radio_as_playlist">Save radio as playlist</string>
+    <string name="playlist_created">Playlist created: %1$s</string>
 </resources>

@@ -1341,8 +1341,7 @@
     <string name="wear_os_code_hint">Kode pemasangan</string>
     <string name="wear_os_done">Selesai</string>
     <string name="signed_by">Ditandatangani oleh %1$s</string>
-    <string name="song_info">Info lagu</string>
-    <string name="song_info_album">Album</string>
+    <string name="song_info">Info lagu</string>    <string name="song_info_album">Album</string>
     <string name="song_info_release_date">Tanggal rilis</string>
     <string name="song_info_views">Pemutaran / penayangan</string>
     <string name="song_info_likes">Suka</string>
@@ -1372,4 +1371,8 @@
     <string name="download_addon_left_out_title">Mengunduh tanpa %1$s</string>
     <string name="download_addon_not_allowed">%1$s tidak mengizinkan unduhan, jadi lagu Anda disimpan dari sumber Anda yang lain.</string>
     <string name="download_addon_needs_lossless_output">%1$s hanya menyajikan musik saat headphone kabel, USB, atau kelas LDAC terhubung. Unduhan melewatinya sampai ada yang terhubung, jadi lagu Anda disimpan dari sumber Anda yang lain.</string>
+    <string name="save_as_playlist">Save as playlist</string>
+    <string name="save_queue_as_playlist">Save queue as playlist</string>
+    <string name="save_radio_as_playlist">Save radio as playlist</string>
+    <string name="playlist_created">Playlist created: %1$s</string>
 </resources>

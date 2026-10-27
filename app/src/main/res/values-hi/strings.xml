@@ -1364,8 +1364,7 @@
     <string name="wear_os_code_hint">पेयरिंग कोड</string>
     <string name="wear_os_done">हो गया</string>
     <string name="signed_by">%1$s द्वारा हस्ताक्षरित</string>
-    <string name="song_info">गाने की जानकारी</string>
-    <string name="song_info_album">एल्बम</string>
+    <string name="song_info">गाने की जानकारी</string>    <string name="song_info_album">एल्बम</string>
     <string name="song_info_release_date">रिलीज़ की तारीख</string>
     <string name="song_info_views">प्ले / व्यू</string>
     <string name="song_info_likes">पसंद</string>
@@ -1395,4 +1394,8 @@
     <string name="download_addon_left_out_title">%1$s के बिना डाउनलोड हो रहा है</string>
     <string name="download_addon_not_allowed">%1$s डाउनलोड की अनुमति नहीं देता, इसलिए आपके गाने आपके दूसरे सोर्स से सेव हो रहे हैं।</string>
     <string name="download_addon_needs_lossless_output">%1$s सिर्फ़ तभी संगीत देता है जब वायर्ड, USB या LDAC-क्लास हेडफ़ोन जुड़े हों। जब तक कोई न जुड़े, डाउनलोड इसे छोड़ देते हैं, इसलिए आपके गाने आपके दूसरे सोर्स से सेव हो रहे हैं।</string>
+    <string name="save_as_playlist">Save as playlist</string>
+    <string name="save_queue_as_playlist">Save queue as playlist</string>
+    <string name="save_radio_as_playlist">Save radio as playlist</string>
+    <string name="playlist_created">Playlist created: %1$s</string>
 </resources>
