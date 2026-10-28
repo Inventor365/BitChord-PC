@@ -1286,8 +1286,6 @@
     <string name="spotify_library_subtitle">你的 Spotify 播放列表</string>
     <string name="spotify_sign_in">使用 Spotify 登入</string>
     <string name="spotify_track_unavailable">在 YouTube Music 上找不到該歌曲</string>
-    <string name="lyrics_original_title">用原標題搜歌詞</string>
-    <string name="lyrics_original_title_desc">先還原 YouTube 原標題再搜歌詞，翻譯過的標題也能找到</string>
 <string name="debrid_api_key">Debrid API key</string>
     
 <string name="debrid_api_key_required">Debrid API key required</string>
@@ -1386,7 +1384,8 @@
     <string name="artist_signatures_unconfigured">尚未設定 — 點選設定 API URL</string>
     <string name="artist_signatures_test_failed">無法連接該 URL 的 API</string>
     <string name="signed_by">由 %1$s 簽名</string>
-    <string name="song_info">歌曲資訊</string>    <string name="song_info_album">專輯</string>
+    <string name="song_info">歌曲資訊</string>
+    <string name="song_info_album">專輯</string>
     <string name="song_info_release_date">發行日期</string>
     <string name="song_info_views">播放 / 觀看次數</string>
     <string name="song_info_likes">喜歡次數</string>
@@ -1427,5 +1426,4 @@
     <string name="auto_download_playlists">Auto-download new playlist songs</string>
     <string name="song_cache_disabled">Disabled</string>
     <string name="song_cache_disabled_subtitle">Caching is turned off — songs will stream each time instead of being stored on disk.</string>
-    <string name="song_info_album">Album</string>
 </resources>

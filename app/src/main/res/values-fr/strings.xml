@@ -1391,7 +1391,8 @@
     <string name="wear_os_code_hint">Code d\'association</string>
     <string name="wear_os_done">Terminé</string>
     <string name="signed_by">Signé par %1$s</string>
-    <string name="song_info">Informations sur le titre</string>    <string name="song_info_album">Album</string>
+    <string name="song_info">Informations sur le titre</string>
+    <string name="song_info_album">Album</string>
     <string name="song_info_release_date">Date de sortie</string>
     <string name="song_info_views">Écoutes / vues</string>
     <string name="song_info_likes">Mentions J’aime</string>
@@ -1432,5 +1433,4 @@
     <string name="auto_download_playlists">Auto-download new playlist songs</string>
     <string name="song_cache_disabled">Disabled</string>
     <string name="song_cache_disabled_subtitle">Caching is turned off — songs will stream each time instead of being stored on disk.</string>
-    <string name="song_info_album">Album</string>
 </resources>

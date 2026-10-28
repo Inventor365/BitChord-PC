@@ -1367,7 +1367,8 @@
     <string name="wear_os_code_hint">Kode pemasangan</string>
     <string name="wear_os_done">Selesai</string>
     <string name="signed_by">Ditandatangani oleh %1$s</string>
-    <string name="song_info">Info lagu</string>    <string name="song_info_album">Album</string>
+    <string name="song_info">Info lagu</string>
+    <string name="song_info_album">Album</string>
     <string name="song_info_release_date">Tanggal rilis</string>
     <string name="song_info_views">Pemutaran / penayangan</string>
     <string name="song_info_likes">Suka</string>
@@ -1408,5 +1409,4 @@
     <string name="auto_download_playlists">Auto-download new playlist songs</string>
     <string name="song_cache_disabled">Disabled</string>
     <string name="song_cache_disabled_subtitle">Caching is turned off — songs will stream each time instead of being stored on disk.</string>
-    <string name="song_info_album">Album</string>
 </resources>

@@ -1368,7 +1368,8 @@
     <string name="wear_os_code_hint">ペア設定コード</string>
     <string name="wear_os_done">完了</string>
     <string name="signed_by">%1$s のサイン</string>
-    <string name="song_info">曲の情報</string>    <string name="song_info_album">アルバム</string>
+    <string name="song_info">曲の情報</string>
+    <string name="song_info_album">アルバム</string>
     <string name="song_info_release_date">リリース日</string>
     <string name="song_info_views">再生回数 / 視聴回数</string>
     <string name="song_info_likes">高評価</string>
@@ -1409,5 +1410,4 @@
     <string name="auto_download_playlists">Auto-download new playlist songs</string>
     <string name="song_cache_disabled">Disabled</string>
     <string name="song_cache_disabled_subtitle">Caching is turned off — songs will stream each time instead of being stored on disk.</string>
-    <string name="song_info_album">Album</string>
 </resources>
