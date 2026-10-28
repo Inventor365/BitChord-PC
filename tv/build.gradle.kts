@@ -83,7 +83,7 @@ val listenTogetherServer: String = (
  * comes. Blanking this line is the one step that turns a beta into a release,
  * so it is the one place to get right.
  */
-val betaSuffix = "beta1"
+val betaSuffix = ""
 
 android {
     namespace = "com.music.bitchord"
@@ -99,7 +99,7 @@ android {
         minSdk = 26
         targetSdk = 36
         versionCode = 28
-        versionName = "1.9"
+        versionName = "1.8.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
