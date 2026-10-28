@@ -1379,4 +1379,53 @@
     <string name="save_queue_as_playlist">Save queue as playlist</string>
     <string name="save_radio_as_playlist">Save radio as playlist</string>
     <string name="playlist_created">Playlist created: %1$s</string>
+    <string name="lyrics_original_title">用原標題搜歌詞</string>
+    <string name="lyrics_original_title_desc">先還原 YouTube 原標題再搜歌詞，翻譯過的標題也能找到</string>
+<string name="debrid_api_key">Debrid API key</string>
+    
+<string name="debrid_api_key_required">Debrid API key required</string>
+    
+<string name="debrid_clear_key">Clear key</string>
+
+<string name="debrid_global_search">Search global cache</string>
+
+<string name="debrid_global_search_summary">Include cached releases outside your account. A release is added to your account only when you play it.</string>
+
+<string name="debrid_auto_cache">Auto-cache addon streams</string>
+
+<string name="debrid_auto_cache_summary">Cache streams after playback starts. If TorBox rejects the URL, BitChord may seed the completed cache file from this device until TorBox finishes. This uses upload data and exposes your IP to torrent peers; only seed content you have the right to share.</string>
+
+<string name="cache_to_debrid">Cache to Debrid</string>
+
+<string name="caching_to_debrid">Caching to Debrid…</string>
+
+<string name="cached_to_debrid">Cached to Debrid</string>
+
+<string name="debrid_connected">Connected</string>
+    
+<string name="debrid_editor_subtitle">Bit-exact RedLake audio through your debrid account</string>
+    
+<string name="debrid_editor_title">Debrid</string>
+    
+<string name="debrid_key_hint">Paste your Debrid API key</string>
+    
+<string name="debrid_key_note">Find it on your debrid provider’s settings page. Stored encrypted on this device, never uploaded anywhere else.</string>
+    
+<string name="debrid_rejected">That key was rejected</string>
+    
+    <string name="addon_blocked_title">Can\'t play this song</string>
+    <string name="addon_blocked_quality">Audio quality on %1$s is set to %2$s. Songs from %3$s only play at Lossless — change it in Settings → Audio quality to play this one.</string>
+    <string name="addon_blocked_watch">Music is playing through your watch, which limits audio below Lossless. Songs from %1$s play again once your phone takes the music back.</string>
+    <string name="download_addon_left_out_title">Downloading without %1$s</string>
+    <string name="download_addon_not_allowed">%1$s doesn\'t allow downloads, so your songs are being saved from your other sources instead.</string>
+    <string name="download_addon_needs_lossless_output">%1$s only serves music while wired, USB or LDAC-class headphones are connected. Downloads skip it until one is, so your songs are being saved from your other sources instead.</string>
+    <string name="show_listen_together_button">Show Listen Together button</string>
+    <string name="show_listen_together_button_subtitle">The output and Listen Together pill under the player controls</string>
+    <string name="show_nav_labels">Show tab labels</string>
+    <string name="show_nav_labels_subtitle">Names under the icons in the bottom bar. Off keeps the bar slimmer</string>
+    <string name="auto_download_playlists">Auto-download new playlist songs</string>
+    <string name="source_downloads_on">Downloads allowed</string>
+    <string name="song_cache_disabled">Disabled</string>
+    <string name="song_cache_disabled_subtitle">Caching is turned off — songs will stream each time instead of being stored on disk.</string>
+    <string name="no_video_version">No video version found for this song</string>
 </resources>

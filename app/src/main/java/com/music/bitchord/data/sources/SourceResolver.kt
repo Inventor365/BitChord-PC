@@ -1042,7 +1042,10 @@ object SourceResolver {
      *   because it is only meaningful when the target *has* a runtime:
      *   [TrackMatcher.withinSeconds] answers false for every candidate against a
      *   null one, so asking for this against a target that never carried a
-     *   duration is not a strict search but an empty one.
+     *   duration is not a strict search but an empty one. A source that cannot
+     *   state a runtime either — see [MusicSource.statesDuration] — skips the
+     *   check for the same reason: every one of its rows would fail it without
+     *   saying anything about the recording.
      */
     private suspend fun matchAndStream(
         source: MusicSource,
@@ -1098,7 +1101,6 @@ object SourceResolver {
             // song; a runtime that agrees this closely is one recording, and
             // nothing else is worth cutting a listener's audio for — or filing
             // on their device under the name of the track they asked for.
-            //
             // For video-origin targets the container runtime includes visual
             // intro/outro footage not present on the audio master (e.g. the
             // 50 s cinematic intro on Diamonds, or the spoken-word segment on
@@ -1106,7 +1108,7 @@ object SourceResolver {
             // the already-validated ceiling for this in ranked(); using the
             // same constant here prevents the upgrade path from discarding a
             // valid Qobuz FLAC (225 s) when the video container says 283 s.
-            if (strictLength) {
+            if (strictLength && source.statesDuration) {
                 val driftSec = if (target.isVideo) TrackMatcher.VIDEO_DURATION_LIMIT_SEC
                                else UPGRADE_DRIFT_SEC
                 matches = matches.filter { TrackMatcher.withinSeconds(it, target, driftSec) }

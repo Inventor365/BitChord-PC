@@ -123,6 +123,7 @@ import com.music.bitchord.auth.SignedIn
 import com.music.bitchord.data.LikeState
 import com.music.bitchord.data.NerdStats
 import com.music.bitchord.data.TrackLog
+import com.music.bitchord.data.debrid.DebridTorrentUploadService
 import com.music.bitchord.data.discord.DiscordRPC
 import com.music.bitchord.data.discord.discordAudioQualityLine
 import com.music.bitchord.data.innertube.PlaybackTracker
@@ -1093,6 +1094,14 @@ class PlaybackService : MediaLibraryService() {
             val exoPlayer = player ?: return
             if (state == Player.STATE_ENDED) {
                 SleepTimer.cancel()
+                listenBrainzSong?.let { endedSong ->
+                    DebridTorrentUploadService.enqueue(
+                        this@PlaybackService,
+                        endedSong.videoId,
+                        endedSong.title,
+                        endedSong.artist,
+                    )
+                }
                 // The queue ran dry, so no transition will ever close the last
                 // track out. Without this its history entry keeps whatever
                 // watchtime the 30-second sampler happened to have reported and
@@ -1468,7 +1477,8 @@ class PlaybackService : MediaLibraryService() {
                 val sourceName = if (directYouTube) {
                     "YouTube"
                 } else {
-                    stream.sourceConfigId?.let { SourceRegistry.config(it)?.displayName }
+                    stream.sourceNameOverride
+                        ?: stream.sourceConfigId?.let { SourceRegistry.config(it)?.displayName }
                         ?: configId?.let { SourceRegistry.config(it)?.displayName }
                         ?: "Source"
                 }
@@ -1551,7 +1561,8 @@ class PlaybackService : MediaLibraryService() {
                 // the lossy stream still coming out of the speaker. The real
                 // open, moments later, records it.
                 val proving = QualityUpgrade.isAuditioning(videoId)
-                val sourceName = upgraded.sourceConfigId?.let { SourceRegistry.config(it)?.displayName }
+                val sourceName = upgraded.sourceNameOverride
+                    ?: upgraded.sourceConfigId?.let { SourceRegistry.config(it)?.displayName }
                     ?: "Upgrade"
                 if (!proving) {
                     NerdStats.onSourceStream(videoId, upgraded.format, sourceName)
@@ -1604,7 +1615,8 @@ class PlaybackService : MediaLibraryService() {
                 // Only when the format states something. A plain YouTube choice
                 // is remembered with an empty one, and writing that over a
                 // claim some other path made would be worse than saying nothing.
-                val sourceName = serving.sourceConfigId?.let { SourceRegistry.config(it)?.displayName }
+                val sourceName = serving.sourceNameOverride
+                    ?: serving.sourceConfigId?.let { SourceRegistry.config(it)?.displayName }
                     ?: if (StreamChoice.isSubstitute(videoId)) "Module" else "YouTube"
                 if (serving.format != StreamFormat()) {
                     NerdStats.onSourceStream(videoId, serving.format, sourceName)
@@ -1679,7 +1691,8 @@ class PlaybackService : MediaLibraryService() {
             }
             when (won) {
                 is Resolved.Module -> {
-                    val sourceName = won.stream.sourceConfigId?.let { SourceRegistry.config(it)?.displayName }
+                    val sourceName = won.stream.sourceNameOverride
+                        ?: won.stream.sourceConfigId?.let { SourceRegistry.config(it)?.displayName }
                         ?: "Module"
                     NerdStats.onSourceStream(videoId, won.stream.format, sourceName)
                     NerdStats.recordSource(videoId, sourceName)
@@ -3750,6 +3763,14 @@ class PlaybackService : MediaLibraryService() {
         val ended = previousEnded
         val prevSong = listenBrainzSong
         val prevStart = listenBrainzStartMs
+        if (ended && prevSong != null) {
+            DebridTorrentUploadService.enqueue(
+                this,
+                prevSong.videoId,
+                prevSong.title,
+                prevSong.artist,
+            )
+        }
         if (prevSong != null && ended && prevStart > 0L) {
             submitListenBrainzFinished(prevSong, prevStart, listenBrainzDurationMs)
         }
@@ -5360,7 +5381,8 @@ class PlaybackService : MediaLibraryService() {
             val swapped = swapToAlignedStream(now, upgradedItem, stream, offsetMs)
             if (!swapped) return@withContext
 
-            val upgradedSourceName = stream.sourceConfigId?.let { SourceRegistry.config(it)?.displayName }
+            val upgradedSourceName = stream.sourceNameOverride
+                ?: stream.sourceConfigId?.let { SourceRegistry.config(it)?.displayName }
                 ?: "Upgrade"
             NerdStats.onSourceStream(mediaId, stream.format, upgradedSourceName)
             NerdStats.recordSource(mediaId, upgradedSourceName)

@@ -871,4 +871,27 @@
     <string name="listen_together_open_count">함께 듣기 · %1$d</string>
     <string name="miscellaneous_footer">켠 경우 최근 앱 화면에서 앱을 닫으면 음악 재생도 멈춥니다.</string>
     <string name="translate">번역</string>
+    <string name="equalizer_float_title">Not running right now</string>
+    <string name="equalizer_float_subtitle">32-bit float output is in use</string>
+    <string name="equalizer_float_footer">Android plays float audio through a path with no room for effects, so the equaliser, spatial audio and silence skipping are all bypassed. Set output to 16-bit PCM to use them.</string>
+    <string name="up_next">Up next</string>
+    <string name="when_you_listen_most">When you listen most</string>
+    <string name="song_info">Song Info</string>
+    <string name="song_info_album">Album</string>
+    <string name="song_info_release_date">Release date</string>
+    <string name="song_info_views">Plays / views</string>
+    <string name="song_info_likes">Likes</string>
+    <string name="song_info_comments">Comments</string>
+    <string name="song_info_unavailable">Not available</string>
+    <string name="song_info_error">Some information could not be loaded.</string>
+    <string name="song_info_retry">Retry</string>
+    <string name="block_explicit">Block explicit songs</string>
+    <string name="block_explicit_subtitle">Skip songs marked explicit in AutoPlay, radio and your queue. Allow one from its menu</string>
+    <string name="allow_explicit_song">Allow this explicit song</string>
+    <string name="block_explicit_song">Block this explicit song again</string>
+    <string name="explicit_song_skipped">Explicit song skipped</string>
+    <string name="explicit_song_blocked">Explicit song</string>
+    <string name="explicit_song_blocked_message">“%1$s” is marked explicit and your filter is blocking it.</string>
+    <string name="allow_this_song">Allow this song</string>
+    <string name="turn_off_blocking">Turn off blocking</string>
 </resources>

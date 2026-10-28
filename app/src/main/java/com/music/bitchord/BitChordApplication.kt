@@ -118,6 +118,7 @@ class BitChordApplication : Application(), SingletonImageLoader.Factory {
         AppSettings.init(this, authStore)
         // A restored backup can bring the switch back without the manifest alias it drives.
         com.music.bitchord.playback.ExternalLinks.sync(this)
+        com.music.bitchord.data.debrid.DebridCache.init(this)
         // Before anything resolves a track: an addon with `checkValidLossless`
         // is gated on this, and the gate reads "no" until it has looked.
         com.music.bitchord.playback.audio.LosslessOutput.init(this)

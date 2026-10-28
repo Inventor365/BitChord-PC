@@ -875,4 +875,22 @@
     <string name="personal_phone">Celular de %1$s</string>
     <string name="this_phone">Este celular</string>
     <string name="translate">Traduzir</string>
+    <string name="song_info">Song Info</string>
+    <string name="song_info_album">Album</string>
+    <string name="song_info_release_date">Release date</string>
+    <string name="song_info_views">Plays / views</string>
+    <string name="song_info_likes">Likes</string>
+    <string name="song_info_comments">Comments</string>
+    <string name="song_info_unavailable">Not available</string>
+    <string name="song_info_error">Some information could not be loaded.</string>
+    <string name="song_info_retry">Retry</string>
+    <string name="block_explicit">Block explicit songs</string>
+    <string name="block_explicit_subtitle">Skip songs marked explicit in AutoPlay, radio and your queue. Allow one from its menu</string>
+    <string name="allow_explicit_song">Allow this explicit song</string>
+    <string name="block_explicit_song">Block this explicit song again</string>
+    <string name="explicit_song_skipped">Explicit song skipped</string>
+    <string name="explicit_song_blocked">Explicit song</string>
+    <string name="explicit_song_blocked_message">“%1$s” is marked explicit and your filter is blocking it.</string>
+    <string name="allow_this_song">Allow this song</string>
+    <string name="turn_off_blocking">Turn off blocking</string>
 </resources>
