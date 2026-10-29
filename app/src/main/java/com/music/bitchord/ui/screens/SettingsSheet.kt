@@ -964,13 +964,9 @@ fun SettingsScreen(
                     title = navLabelsTitle,
                     subtitle = stringResource(R.string.show_nav_labels_subtitle),
                     trailing = {
-                        Switch(
+                        IosSwitch(
                             checked = navLabels,
                             onCheckedChange = AppSettings::setShowNavLabels,
-                            colors = SwitchDefaults.colors(
-                                checkedTrackColor = MaterialTheme.colorScheme.primary,
-                                checkedBorderColor = MaterialTheme.colorScheme.primary,
-                            ),
                         )
                     },
                     onClick = { AppSettings.setShowNavLabels(!navLabels) },
@@ -1448,13 +1444,9 @@ fun SettingsScreen(
                     title = blockExplicitTitle,
                     subtitle = stringResource(R.string.block_explicit_subtitle),
                     trailing = {
-                        Switch(
+                        IosSwitch(
                             checked = blockExplicit,
                             onCheckedChange = AppSettings::setBlockExplicit,
-                            colors = SwitchDefaults.colors(
-                                checkedTrackColor = MaterialTheme.colorScheme.primary,
-                                checkedBorderColor = MaterialTheme.colorScheme.primary,
-                            ),
                         )
                     },
                     onClick = { AppSettings.setBlockExplicit(!blockExplicit) },
@@ -1604,13 +1596,9 @@ fun SettingsScreen(
                     title = externalLinksTitle,
                     subtitle = stringResource(R.string.external_links_subtitle),
                     trailing = {
-                        Switch(
+                        IosSwitch(
                             checked = externalLinks,
                             onCheckedChange = { ExternalLinks.setEnabled(context, it) },
-                            colors = SwitchDefaults.colors(
-                                checkedTrackColor = MaterialTheme.colorScheme.primary,
-                                checkedBorderColor = MaterialTheme.colorScheme.primary,
-                            ),
                         )
                     },
                     onClick = { ExternalLinks.setEnabled(context, !externalLinks) },

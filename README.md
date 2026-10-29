@@ -5,20 +5,20 @@
 
 <img src="Logo.png" alt="BitChord app icon" width="200" />
 
-# BitChord
+# BitChord (PC, Desktop & Mobile Edition)
 
-### Aesthetic YouTube Music Client for Android, Android TV, Wear OS, Windows, macOS & Linux
+### Aesthetic YouTube Music Client for Windows, macOS, Linux, Android, Android TV & Wear OS
 
 <br/>
 
-[![Latest release](https://img.shields.io/github/v/release/Inventor365/BitChord?style=for-the-badge&labelColor=0d1117)](https://github.com/Inventor365/BitChord/releases/latest)
-[![License](https://img.shields.io/github/license/Inventor365/BitChord?style=for-the-badge&labelColor=0d1117)](https://github.com/Inventor365/BitChord/blob/main/LICENSE)
-[![Downloads](https://img.shields.io/github/downloads/Inventor365/BitChord/total?style=for-the-badge&labelColor=0d1117)](https://github.com/Inventor365/BitChord/releases)
+[![Latest release](https://img.shields.io/github/v/release/Inventor365/BitChord-PC?style=for-the-badge&labelColor=0d1117)](https://github.com/Inventor365/BitChord-PC/releases/latest)
+[![License](https://img.shields.io/github/license/Inventor365/BitChord-PC?style=for-the-badge&labelColor=0d1117)](https://github.com/Inventor365/BitChord-PC/blob/main/LICENSE)
+[![Downloads](https://img.shields.io/github/downloads/Inventor365/BitChord-PC/total?style=for-the-badge&labelColor=0d1117)](https://github.com/Inventor365/BitChord-PC/releases)
 [![Listening now](https://api.bitchord.kushagrasingh.in/api/stats/live/badge.svg)](https://api.bitchord.kushagrasingh.in/api/stats/live)
 
 <br/>
 
-[**Download**](#download) · [**What's Extra**](#whats-extra) · [**Features**](#features) · [**Desktop**](#desktop) · [**Contributing**](#contributing) · [**Support**](#support) · [**Disclaimer**](#disclaimer)
+[**Download**](#download) · [**What's Extra**](#whats-extra) · [**Features**](#features) · [**Desktop**](#desktop) · [**Contributing**](#contributing) · [**Credits**](#credits) · [**Disclaimer**](#disclaimer)
 
 <br/>
 
@@ -65,18 +65,18 @@
 <h1><a id="download"></a>Download</h1>
 
 <p>
-  <a href="https://github.com/Inventor365/BitChord/releases/latest" target="_blank" rel="noopener noreferrer"><img src="https://cdn.jsdelivr.net/gh/JMcrafter26/badges@main/src/assets/supported/android/cozy.svg" alt="Download for Android" height="56"/></a>
+  <a href="https://github.com/Inventor365/BitChord-PC/releases/latest" target="_blank" rel="noopener noreferrer"><img src="https://cdn.jsdelivr.net/gh/JMcrafter26/badges@main/src/assets/supported/android/cozy.svg" alt="Download for Android" height="56"/></a>
   &nbsp;
-  <a href="https://github.com/Inventor365/BitChord/releases/latest" target="_blank" rel="noopener noreferrer"><img src="https://cdn.jsdelivr.net/gh/JMcrafter26/badges@main/src/assets/supported/windows/cozy.svg" alt="Download for Windows" height="56"/></a>
+  <a href="https://github.com/Inventor365/BitChord-PC/releases/latest" target="_blank" rel="noopener noreferrer"><img src="https://cdn.jsdelivr.net/gh/JMcrafter26/badges@main/src/assets/supported/windows/cozy.svg" alt="Download for Windows" height="56"/></a>
   &nbsp;
-  <a href="https://github.com/Inventor365/BitChord/releases/latest" target="_blank" rel="noopener noreferrer"><img src="https://cdn.jsdelivr.net/gh/JMcrafter26/badges@main/src/assets/supported/macos/cozy.svg" alt="Download for macOS" height="56"/></a>
+  <a href="https://github.com/Inventor365/BitChord-PC/releases/latest" target="_blank" rel="noopener noreferrer"><img src="https://cdn.jsdelivr.net/gh/JMcrafter26/badges@main/src/assets/supported/macos/cozy.svg" alt="Download for macOS" height="56"/></a>
   &nbsp;
-  <a href="https://github.com/Inventor365/BitChord/releases/latest" target="_blank" rel="noopener noreferrer"><img src="docs/badges/linux-cozy.svg" alt="Download for Linux" height="56"/></a>
+  <a href="https://github.com/Inventor365/BitChord-PC/releases/latest" target="_blank" rel="noopener noreferrer"><img src="docs/badges/linux-cozy.svg" alt="Download for Linux" height="56"/></a>
 </p>
 
 </div>
 
-| Platform | Architectures | Packages on [Releases](https://github.com/Inventor365/BitChord/releases/latest) |
+| Platform | Architectures | Packages on [Releases](https://github.com/Inventor365/BitChord-PC/releases/latest) |
 | :--- | :--- | :--- |
 | **Android (Phone & Tablet)** | Universal, `arm64-v8a`, `armeabi-v7a`, `x86_64` | `BitChord-v1.8.2.apk`, `BitChord-v1.8.2_<abi>.apk` |
 | **Android TV / Fire TV** | Universal, `arm64-v8a`, `armeabi-v7a`, `x86_64` | `BitChordTV-v1.8.2.apk`, `BitChordTV-v1.8.2_<abi>.apk` |
@@ -96,12 +96,11 @@ This repository tracks [`kushagrasinghx/BitChord`](https://github.com/kushagrasi
 - **Native Desktop Client Restored (`:desktopApp` & `:desktopUi`)**:
   - Native packages for **Windows (`x64` `.exe`, `.msi`, `portable.zip`)**, **macOS (`arm64` & `x64` `.dmg`, `.pkg`, `.zip`)**, and **Linux (`x86_64` `.AppImage`, `.deb`, `.rpm`)**.
   - Native audio output (`WASAPI`, `CoreAudio`, `ALSA`/`PulseAudio`/`PipeWire`), 10-band parametric EQ, system media integration (`SMTC`, `MPRIS2`, macOS Now Playing), Discord Rich Presence IPC, and local Beat This! (`final0`) ONNX Automix analysis.
-- **Waveform-Aligned Lossless Upgrades (`#1036`)**: Cross-correlates audio envelopes between the playing stream and the incoming lossless upgrade on a standby deck, handing over with an equal-power crossfade so stream upgrades never skip or click.
-- **TorBox Debrid Cloud Cache (`#1161`)**: Stream bit-exact FLAC, ALAC, Dolby Atmos, and AC-4 tracks from your TorBox library or global cache, and cache addon streams into your account.
+- **Bit-Perfect Output Modes (`#1194`)**: Android 14 bit-perfect USB mixer bypass, built-in DAP AAudio exclusive mode, and custom direct USB Audio Class 1.0/2.0 hardware driver with hardware DAC volume HUD.
+- **Sequential Source Fallback & Interactive Quality Badge (`#1200`)**: Queries sources in rank order without redundant parallel downloads, automatically falls back to the next source when an auditioned stream is rejected or stalls, drops failed addon calls even when cancelled, and lets you tap the lossless badge on the player to reveal the active source name.
 - **External Music Links (`#1145`)**: Open Spotify, Apple Music, Deezer, and SoundCloud links directly inside BitChord, matched automatically on YouTube Music.
 - **Save Queue & Radio as Playlist (`#1174`)**: Save your current queue or active radio session as a new playlist in one tap.
 - **Samsung Galaxy Buds Control Panel (`#983`)**: Control ANC, Ambient Sound, 360 Audio, equalizer presets, and view earbud/case battery levels directly from the player's audio output sheet.
-- **Lossless Audio Upgrade for Video Streams & TV (`#972`)**: Upgrades music-video tracks to studio lossless audio (accounting for video intro/outro duration drift) and brings lossless upgrades to BitChord TV.
 - **Chromecast Queue Window & Downloaded Track Casting (`#1186`)**: Casts bounded queue windows, resolves downloaded tracks to their remote stream URLs for Chromecast, and keeps cast session state accurate.
 - **Android TV Low-Memory Performance Mode (`#1044`)**: Adaptive artwork sizing and memory budgets for smooth playback and navigation on low-RAM Android TV and Fire TV devices.
 - **Privacy & Customization Enhancements**:
@@ -111,6 +110,7 @@ This repository tracks [`kushagrasinghx/BitChord`](https://github.com/kushagrasi
   - **Icon-Only Bottom Navigation Bar (`#907`)** toggle in Settings.
   - **Fully Anonymous Search & Pagination (`#939`)** so searches never pollute YouTube Music history.
   - **Per-Track Local Cover Art (`#1188`)** and **Embedded ID3 Lyrics (`#1119`)** for local MP3 libraries.
+  - **Complete Portuguese (`pt-BR`, `#1204`) & Turkish (`tr`, `#1211`) Localizations** across mobile, shared UI, and Wear OS.
 
 ---
 
@@ -174,27 +174,27 @@ We welcome contributions to BitChord! Please review our [Contributing Guide](CON
 
 [**Contributing Guide**](CONTRIBUTING.md) · [**Code of Conduct**](CODE_OF_CONDUCT.md) · [**Maintainers**](MAINTAINERS.md) · [**Additional Docs**](ADDITIONAL.md)
 
-### Thanks to all contributors ❤
-
-<a href="https://github.com/kushagrasinghx/BitChord/graphs/contributors">
-  <img src="https://raw.githubusercontent.com/kushagrasinghx/BitChord/contributors/contributors.svg" />
-</a>
-
 </div>
 
 ---
 
 <div align="center">
 
-<h1><a id="support"></a>Support</h1>
+<h1><a id="credits"></a>Credits & Acknowledgements</h1>
 
-BitChord is free and always will be — if it's earned a spot in your rotation, you can chip in to the upstream creator here:
+</div>
 
-<a href="https://ko-fi.com/kushagrasinghx" target="_blank" rel="noopener noreferrer"><img src="https://cdn.jsdelivr.net/gh/JMcrafter26/badges@main/src/assets/donate/kofi-singular-alt/cozy.svg" alt="Support me on Ko-fi" height="55"/></a>
-<a href="https://paypal.me/kuxhagrasingh" target="_blank" rel="noopener noreferrer"><img src="https://cdn.jsdelivr.net/gh/JMcrafter26/badges@main/src/assets/donate/paypal-plural/cozy.svg" alt="Support us on PayPal" height="55"/></a>
+- **Original Creator & Upstream Project**: **[Kushagra Singh (`@kushagrasinghx`)](https://github.com/kushagrasinghx)** and the official **[kushagrasinghx/BitChord](https://github.com/kushagrasinghx/BitChord)** project for creating BitChord, its Apple Music-inspired Liquid Glass design system, Automix DSP engine, and mobile/TV/Wear OS foundations.
+- **Desktop Restoration & Community Integration**: Maintained by **[`@Inventor365`](https://github.com/Inventor365)** — restoring and maintaining the native Windows, macOS, and Linux desktop client (`:desktopApp` & `:desktopUi`) alongside curated upstream pull requests.
+- **Lyrics & Visual Inspiration**: **[binimum (`am-lyrics`)](https://github.com/binimum/am-lyrics)** for Apple-style word-by-word synced lyrics design, and the open lyrics ecosystem ([LRCLIB](https://lrclib.net), [BetterLyrics](https://github.com/better-lyrics/better-lyrics), [PaxSenix](https://lyrics.paxsenix.org), [BiniLyrics](https://github.com/binimum), [LyricsPlus](https://github.com/ibratabian17/YouLyPlus), [SimpMusic](https://github.com/maxrave-dev/SimpMusic), [Unison](https://unison.boidu.dev)).
 
-<br/>
-<img src="upi_support.jpg" alt="UPI Support" width="250" />
+<div align="center">
+
+### Thanks to all contributors ❤
+
+<a href="https://github.com/kushagrasinghx/BitChord/graphs/contributors">
+  <img src="https://raw.githubusercontent.com/kushagrasinghx/BitChord/contributors/contributors.svg" />
+</a>
 
 </div>
 

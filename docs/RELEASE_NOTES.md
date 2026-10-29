@@ -1,13 +1,13 @@
-![BitChord Android Banner](https://raw.githubusercontent.com/Inventor365/BitChord/main/Banner.png)
+![BitChord Android Banner](https://raw.githubusercontent.com/Inventor365/BitChord-PC/main/Banner.png)
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Inventor365/BitChord/main/docs/screenshots/macos.png" alt="BitChord for macOS" width="49%" />
-  <img src="https://raw.githubusercontent.com/Inventor365/BitChord/main/docs/screenshots/linux.png" alt="BitChord for Linux & Windows" width="49%" />
+  <img src="https://raw.githubusercontent.com/Inventor365/BitChord-PC/main/docs/screenshots/macos.png" alt="BitChord for macOS" width="49%" />
+  <img src="https://raw.githubusercontent.com/Inventor365/BitChord-PC/main/docs/screenshots/linux.png" alt="BitChord for Linux & Windows" width="49%" />
 </p>
 
-## What's Extra Over Official (`Inventor365/BitChord`)
+## What's Extra Over Official (`Inventor365/BitChord-PC`)
 
-This release combines the latest upstream **`v1.8.2`** (`#1109`) and **`web-player`** (`#1157`) developments from [`kushagrasinghx/BitChord`](https://github.com/kushagrasinghx/BitChord) with **full native desktop builds** and **22+ community pull requests** integrated ahead of upstream:
+This release combines the latest upstream **`v1.8.2`** (`77634fb6`, `#1109`, `#1194`) and **`web-player`** (`#1157`) developments from [`kushagrasinghx/BitChord`](https://github.com/kushagrasinghx/BitChord) with **full native desktop builds** and **22+ verified community pull requests** integrated ahead of upstream:
 
 ### 1. Native Desktop App Restored & Maintained (Windows, macOS & Linux)
 - **Windows (`x64`)**: `.msi` installer, `-setup.exe` installer, and zero-install `-portable.zip` bundle with native WASAPI exclusive/shared output, Windows System Media Transport Controls (`bitchord_smtc.dll`), and DWM Mica/Acrylic window backdrop.
@@ -15,13 +15,11 @@ This release combines the latest upstream **`v1.8.2`** (`#1109`) and **`web-play
 - **Linux (`x86_64`)**: `.AppImage`, `.deb`, and `.rpm` packages with MPRIS2 D-Bus media integration, StatusNotifier/AppIndicator system tray menu, SecretService keyring storage, and HiDPI fractional scaling fix.
 - **Desktop Audio & Intelligence**: Bundled `libbitchord_analysis` native DSP + Beat This! (`final0`) ONNX model for local Automix beat/key/downbeat tracking, 10-band parametric EQ, Discord Rich Presence IPC, and full 17-language localization (including the new Korean `ko` desktop translation).
 
-### 2. Integrated Community Pull Requests (Ahead of Official)
-- **Waveform-Aligned Stream Upgrades (`#1036`)**: Synchronizes a standby player deck using cross-correlated audio waveform alignment (`StreamAudioAligner`) and performs a 300 ms equal-power crossfade handover when upgrading from YouTube to lossless FLAC/ALAC streams, eliminating audible seams or skips.
-- **TorBox Debrid Cloud Cache Integration (`#1161`)**: Adds a first-class Debrid source supporting global cache lookups, bit-exact FLAC/ALAC/Dolby Atmos/AC-4 playback from your TorBox library, and background seeding/caching of addon streams into your account.
+### 2. Integrated Community Pull Requests & Playback Fixes (Ahead of Official)
+- **Sequential Source Fallback & Interactive Quality Badge (`#1200`)**: Queries sources in rank order instead of triggering duplicate parallel downloads, falls back to the next source when an auditioned stream is rejected or stalls (`4s` stall detection), drops failed addon calls even when the starter coroutine was cancelled, and lets you tap the quality badge on the player to toggle the active source name.
 - **Open External Music Links (`#1145`)**: Intercepts Spotify, Apple Music, Deezer, and SoundCloud track, album, and playlist links and opens them directly in BitChord, matched automatically on YouTube Music.
 - **Save Queue & Radio as Playlist (`#1174`)**: Adds one-tap **Save queue as playlist** and **Save radio as playlist** actions in the queue header and playlist picker.
 - **Samsung Galaxy Buds Integration (`#983`)**: Native Bluetooth SPP control panel (`GalaxyBudsManager`) integrated directly into the audio output sheet for Galaxy Buds2 / Buds2 Pro / Buds3 / Buds3 Pro (ANC, Ambient Sound, 360 Audio, touch lock, equalizer presets, and per-earbud/case battery levels).
-- **Lossless Audio Upgrade for Video Streams & BitChord TV (`#972`)**: Enables studio lossless audio upgrades even when a track originates from a music-video upload (handling cinematic intro/outro duration drift) and brings lossless upgrades to Android TV.
 - **Cast Queue Window & Downloaded Track Casting (`#1186`)**: Sends a bounded castable queue window to Chromecast receivers, streams downloaded tracks via their remote URLs instead of skipping them, and reports honest receiver playback positions.
 - **Android TV Low-Memory Performance Mode (`#1044`)**: Adaptive artwork sizing (`TvArtworkSizing`) and memory-aware rendering policies (`TvPerformancePolicy`) for smooth navigation on resource-constrained Android TV and Fire TV sticks.
 - **Block Explicit Songs (`#801`)**: Optional explicit content filter (`ExplicitFilter`) that filters AutoPlay and radio stations, skips blocked explicit tracks in the queue, dims explicit rows in lists, and offers an allow-once / disable-blocking prompt.
@@ -30,15 +28,17 @@ This release combines the latest upstream **`v1.8.2`** (`#1109`) and **`web-play
 - **Icon-Only Navigation Bar (`#907`)**: New appearance toggle to hide bottom navigation tab labels for a clean icon-only bar.
 - **Anonymous Search & History Privacy (`#939`)**: Ensures all YouTube Music search queries and search pagination continuations run anonymously without logging searches to your Google watch/search history.
 - **Local Per-Track Cover Art & Embedded ID3 Lyrics (`#1188`, `#1119`, `#1187`)**: Gives each local audio file its own embedded cover art rather than sharing one cover across an album ID, reads embedded ID3 `USLT`/`SYLT` lyrics from local MP3 files, and keys remote artwork on `(videoId, thumbnailUrl)`.
-- **Lyrics & Playlist Fixes (`#1099`, `#1095`, `#1094`, `#1091`, `#991`, `#932`)**: Reloads Android service/notification lyrics when source order or syllable sync changes, decodes astral emoji HTML entities in Enhanced LRC, prevents plain lyrics from beating line-synced lyrics, expands multi-timestamp compressed LRC lines, loads all tracks in the playlist reorder screen, and resumes playback reliably after automatic version swaps.
+- **Lyrics, Localization & Playlist Fixes (`#1211`, `#1204`, `#1099`, `#1095`, `#1094`, `#1091`, `#991`, `#932`)**: Complete Portuguese (`pt-BR`) and Turkish (`tr`) localizations across all modules, reloads Android service/notification lyrics when source order or syllable sync changes, decodes astral emoji HTML entities in Enhanced LRC, prevents plain lyrics from beating line-synced lyrics, expands multi-timestamp compressed LRC lines, loads all tracks in the playlist reorder screen, and resumes playback reliably after version swaps.
 - **Listen Together Party Hardening (`#997`, `#1089`, `#1088`, `#1087`, `#1086`)**: Publishes the exact playing copy's index when a track appears twice in a party queue, accepts uppercase/mixed-case invite URLs, avoids double-escaping invalid invite codes, writes human-readable activity feed entries, and prevents slow WebSocket listeners from holding party locks.
 
 ---
 
 ## Upstream `v1.8.2` Highlights
 
-- **Apple-Fidelity Liquid Glass & Typography**: Liquid Glass edge refraction and plus-darker end crescents, adaptive dark/light glass glyphs over bright backdrops, progressive status-bar blur setting, squircle segmented tabs, and SF Pro typography tuned to Apple Music proportions.
-- **Full Music Video Support**: Watch music videos directly in the player with selectable video quality up to 4K, 3:4 motion covers on mobile, and music-video radio continuation.
+- **Bit-Perfect Audio Output (`#1194`)**: Three bit-perfect modes — Android 14 bit-perfect USB mixer bypass, built-in DAP AAudio exclusive mode, and a custom direct USB Audio Class 1.0/2.0 driver with hardware DAC volume control and an iOS-style frosted volume HUD.
+- **Automix Tempo Ease & Late Handoff Fixes**: Eases beat-matched tempo back one beat at a time and handles the outgoing player reaching the next track before handoff without stopping playback.
+- **Apple-Fidelity Liquid Glass & Typography**: Liquid Glass edge refraction and plus-darker end crescents, adaptive dark/light glass glyphs over bright backdrops, progressive status-bar blur setting, squircle segmented tabs, iOS-style context menus (`SongActionsMenu`) with SF Symbols, and SF Pro typography tuned to Apple Music proportions.
+- **Full Music Video Support**: Watch music videos directly in the player with selectable video quality up to 4K, YouTube's official version time-map alignment, 3:4 motion covers on mobile, and music-video radio continuation.
 - **Automix Loop Mix**: Beat-matched DJ loop mixing powered by the updated Beat This! (`final0`) model and Signalsmith time-stretching, with an interactive Mix View popup and vocal/lyric loop guard.
 - **Top Picks for You & Offline Player**: New **Top Picks** hero carousel on Home, dedicated Offline Player mode (device playlists, Liked songs, Folders tab, Open With), custom Sleep Timer (5 minutes to 12 hours), and **Remove from history** action on the History screen.
 - **New Icons, Fonts & Languages**: Neon app icons (Apple, Samsung, and Pixel shapes), Monochrome icon, Vazirmatn font option for Persian lyrics, and full Korean (`ko`) localization.
