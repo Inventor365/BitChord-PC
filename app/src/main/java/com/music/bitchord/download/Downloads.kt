@@ -327,18 +327,6 @@ object Downloads {
         return null
     }
 
-    /**
-     * The original public URL for [videoId]'s saved file, when one was
-     * recorded. Null for a YouTube download and for records written before
-     * the field existed.
-     *
-     * Deliberately does not touch the disk: the caller is deciding whether a
-     * cache action makes sense, and the file itself is not what the provider
-     * would fetch.
-     */
-    fun sourceUrlFor(videoId: String): String? =
-        _savedMetadata.value[videoId]?.sourceUrl?.takeIf { it.startsWith("http", ignoreCase = true) }
-
     /** Delete the file saved for [videoId] and forget it. */
     suspend fun delete(context: Context, videoId: String): Boolean = withContext(Dispatchers.IO) {
         val uri = _saved.value[videoId]?.toUri() ?: return@withContext false
@@ -594,14 +582,8 @@ object Downloads {
         uri: Uri,
         downloadFormat: String? = null,
         artworkUri: String? = null,
-        sourceUrl: String? = null,
     ) {
         val ids = setOf(asked.videoId, fetched.videoId)
-        // A re-download of a file already on disk — or a second alias for the
-        // same file — must not forget where its bytes originally came from.
-        // That URL is the only way the file can later be cached to a debrid
-        // account, which cannot upload the local bytes itself.
-        val existingSource = ids.firstNotNullOfOrNull { _savedMetadata.value[it]?.sourceUrl }
         // MediaStore supplies this for exported downloads, but app-private and
         // legacy file:// downloads never pass through that index. Keep the
         // creation time in our own record so "Date added" remains stable if a
@@ -638,7 +620,6 @@ object Downloads {
             uri = uri.toString(),
             downloadFormat = downloadFormat,
             dateAddedSeconds = dateAddedSeconds,
-            sourceUrl = sourceUrl ?: existingSource,
         )
         val metaFetched = SavedSongMetadata(
             videoId = fetched.videoId,
@@ -650,7 +631,6 @@ object Downloads {
             uri = uri.toString(),
             downloadFormat = downloadFormat,
             dateAddedSeconds = dateAddedSeconds,
-            sourceUrl = sourceUrl ?: existingSource,
         )
         record(
             saved = { it + ids.associateWith { id -> uri.toString() } },
@@ -1018,7 +998,7 @@ object Downloads {
         // Already there from a previous run the record lost track of — adopt it
         // rather than writing a second copy beside it.
         plan.alreadyAt?.let { uri ->
-            remember(song, track, uri, sourceUrl = plan.route?.sourceUrl)
+            remember(song, track, uri)
             DownloadSession.done(id)
             clear(id)
             return
@@ -1054,7 +1034,7 @@ object Downloads {
                 val alreadyThere = DownloadStore.existing(context, name)
                 if (alreadyThere != null) {
                     Log.d(TAG, "$name is already in Music; adopting it")
-                    remember(song, track, alreadyThere, sourceUrl = route.sourceUrl)
+                    remember(song, track, alreadyThere)
                     DownloadSession.done(id)
                     clear(id)
                     return@coroutineScope
@@ -1088,7 +1068,7 @@ object Downloads {
                             artwork = artwork?.await(),
                         )
                     }
-                    remember(song, track, savedUri, route.downloadFormat, sourceUrl = route.sourceUrl)
+                    remember(song, track, savedUri, route.downloadFormat)
                     DownloadSession.done(id)
                     clear(id)
                     Log.d(TAG, "saved offline ${if (manifest.dash) "DASH" else "HLS"} package for $name")
@@ -1112,7 +1092,7 @@ object Downloads {
                 val artworkUri = MediaTagger.persistArtwork(context, track.thumbnailUrl, cover)
                 val savedUri = destination.commit()
                 pending = null
-                remember(song, track, savedUri, route.downloadFormat, artworkUri, route.sourceUrl)
+                remember(song, track, savedUri, route.downloadFormat, artworkUri)
                 DownloadSession.done(id)
                 clear(id)
                 Log.d(TAG, "saved $name")
@@ -1149,12 +1129,6 @@ object Downloads {
         /** Short premium-rendition badge shown only in BitChord's Downloads list. */
         val downloadFormat: String? = null,
         val taggable: Boolean = true,
-        /**
-         * The public file URL this route fetches, when the source gave one.
-         * A manifest URL is left out: it names an index, not the audio file a
-         * debrid provider could cache.
-         */
-        val sourceUrl: String? = null,
         val offlineHls: Manifest? = null,
         val write: suspend (OutputStream, (written: Long, total: Long) -> Unit) -> Unit,
     )
@@ -1238,7 +1212,6 @@ object Downloads {
                 mimeType = probe.container.mimeType,
                 describe = stream.format.summary,
                 downloadFormat = stream.format.downloadBadge(),
-                sourceUrl = stream.url,
                 write = { sink, onProgress ->
                     Downloader.fetchDirect(stream.url, stream.headers, sink, onProgress)
                 },
@@ -1392,6 +1365,25 @@ object Downloads {
         return keepable(stream, TrackMatcher.targetOf(track).durationSec)
     }
 
+    /**
+     * [stream] as something a download can keep, described by its bytes — or
+     * null when it can't be kept.
+     *
+     * Three things come out of the probe that the source's label couldn't be
+     * trusted with:
+     *
+     *  - **The container.** An addon's `aac` or `mp3` used to have no file
+     *    type to land in at all, so it went to YouTube — while JioSaavn, which
+     *    always says `mp4`, never did. That asymmetry was the whole of "with an
+     *    addon connected it still downloads JioSaavn or Opus".
+     *  - **Whether it is a manifest.** Labels lie about this one in particular;
+     *    see [Downloader.probe].
+     *  - **A codec and bitrate where the source stated neither.** Playback
+     *    accepts an undescribed stream and lets the decoder work it out. A
+     *    download has to name the file and judge it against YouTube first, so
+     *    the codec comes from the bytes and the bitrate from the file's length
+     *    over the track's — marked inferred, as an addon's tier-derived 320 is.
+     */
     private suspend fun keepable(stream: SourceStream, durationSec: Int?): Kept? {
         val probe = Downloader.probe(stream.url, stream.headers, stream.format.codec)
         if (probe == null) {
@@ -1559,16 +1551,6 @@ internal data class SavedSongMetadata(
     val downloadFormat: String? = null,
     /** Stable creation time for downloads that MediaStore does not index. */
     val dateAddedSeconds: Long? = null,
-    /**
-     * The public URL the bytes were fetched from, when there was one.
-     *
-     * A debrid provider cannot accept an upload, so this is the only way a
-     * saved file can later be cached into the account: the provider fetches
-     * the original source itself. YouTube's expiring stream URLs are
-     * deliberately not recorded — they are dead by the time anyone asks — and
-     * defaulted so records written before this field still decode.
-     */
-    val sourceUrl: String? = null,
 )
 
 /**

@@ -584,7 +584,7 @@ object AudioCache {
      * rather than re-fetching it.
      */
     private fun atmosKeySuffix(): String =
-        if (DeviceCodecs.playsDolbyAtmos && AppSettings.dolbyAtmos.value) "" else "-noatmos"
+        if (DeviceCodecs.atmosWanted) "" else "-noatmos"
 
     /**
      * Which kind of server a cache entry's bytes came from, as recorded by
@@ -1288,7 +1288,7 @@ object AudioCache {
                 // URL-only warm-up it did before — YouTube resolves the track at
                 // playback time as usual.
                 val warmed = if (substitutable && target != null && !pinnedToYouTube) {
-                    runCatching { SourceResolver.prefetchSubstitute(target, next) }
+                    runCatching { SourceResolver.prefetchSubstitute(target) }
                         .onFailure { TrackLog.d(TAG, "warm-up substitute failed for $next: ${it.message}", about = next) }
                         .getOrNull()
                         ?.also { StreamChoice.remember(next, it, substituted = true) }

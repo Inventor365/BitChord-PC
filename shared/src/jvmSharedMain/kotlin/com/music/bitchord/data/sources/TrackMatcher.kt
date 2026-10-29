@@ -106,7 +106,7 @@ object TrackMatcher {
 
     /** The first credited artist — who a catalogue is most likely to file the track under. */
     internal fun primaryArtist(artist: String): String {
-        val primary = normalize(artist).replace(VEVO_SUFFIX, "").split(ARTIST_SEPARATORS).firstOrNull()?.trim().orEmpty()
+        val primary = normalize(artist).split(ARTIST_SEPARATORS).firstOrNull()?.trim().orEmpty()
         return primary.takeUnless { it in YOUTUBE_TYPE_LABELS }.orEmpty()
     }
 
@@ -294,7 +294,7 @@ object TrackMatcher {
      * Whether otherwise valid rows describe more than one release while the
      * requested track gives us no release with which to choose between them.
      *
-     * Catalogue has catalogue collisions where title and artist are identical
+     * JioSaavn has catalogue collisions where title and artist are identical
      * but the audio is not. Picking the runtime-nearest row is unsafe there:
      * a different recording can be only a second nearer than the wanted one.
      * The caller uses this as a conservative source miss and leaves the track
@@ -316,7 +316,7 @@ object TrackMatcher {
     }
 
     /**
-     * Resolves a Catalogue release collision only when one candidate is plainly
+     * Resolves a JioSaavn release collision only when one candidate is plainly
      * more specifically credited than every other close-duration candidate.
      *
      * A film's original release often names the complete vocal ensemble while
@@ -557,11 +557,8 @@ object TrackMatcher {
      * `(title)`. CJK letters themselves survive — stripping them is what kept
      * every non-Latin catalogue out of matching entirely.
      */
-    private val CAMEL_CASE = Regex("""(\p{Ll})(\p{Lu})""")
-
     internal fun normalize(text: String): String =
         Normalizer.normalize(text, Normalizer.Form.NFKC)
-            .replace(CAMEL_CASE, "\$1 \$2")
             .lowercase(Locale.ROOT)
             .replace("&", " and ")
             .replace(CJK_OPEN, "(")
@@ -701,7 +698,6 @@ object TrackMatcher {
      * "A. R. Rahman" and a plain "AR Rahman" are the same person.
      */
     internal fun artistNames(value: String): Set<List<String>> = normalize(value)
-        .replace(VEVO_SUFFIX, "")
         .split(ARTIST_SEPARATORS)
         .map { name ->
             name.split(WORD_SPLIT)
@@ -848,17 +844,8 @@ object TrackMatcher {
         return abs(actualSec - expectedSec) > DURATION_LIMIT_SEC
     }
 
-    /**
-     * Visual intros/outros can make the video substantially longer than its audio master.
-     *
-     * Internal (not private) so [SourceResolver] can apply the same 90-second ceiling in
-     * the upgrade path — both the [SourceResolver.matchAndStream] strict-length filter and
-     * [SourceResolver.sameRecordingAs] need this same constant for video-origin targets.
-     * Tracks like "Diamonds" (Rihanna, 283s video / 225s FLAC) and "Love Yourself"
-     * (Justin Bieber, 272s video / 233s FLAC) have drifts of 58s and 39s respectively —
-     * both below this ceiling and both rejected by the old UPGRADE_DRIFT_SEC = 2 guard.
-     */
-    const val VIDEO_DURATION_LIMIT_SEC = 90
+    /** Visual intros/outros can make the video substantially longer than its audio master. */
+    private const val VIDEO_DURATION_LIMIT_SEC = 90
 
     private const val BRACKET_PASSES = 3
     private const val DASH_PASSES = 3
@@ -924,7 +911,6 @@ object TrackMatcher {
     )
     private val CJK_OPEN = Regex("[「『【〈《〔［｛]")
     private val CJK_CLOSE = Regex("[」』】〉》〕］｝]")
-    private val VEVO_SUFFIX = Regex("""(?i)\bvevo\b|vevo$""")
     // Not the katakana middle dot `・`: it sits *inside* a transliterated
     // name (ジョン・レノン), and splitting there makes two Johns one artist.
     private val ARTIST_SEPARATORS =

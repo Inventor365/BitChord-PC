@@ -4,6 +4,8 @@ import android.media.MediaCodecList
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.mediacodec.MediaCodecUtil
 import com.music.bitchord.data.TrackLog
+import com.music.bitchord.data.settings.AppSettings
+import com.music.bitchord.playback.audio.bitperfect.BitPerfectOutput
 import java.util.Locale
 
 /**
@@ -39,12 +41,11 @@ import java.util.Locale
  * hands `MediaCodecAudioRenderer`, including Media3's per-device workarounds
  * and its blocklists for decoders that are advertised and don't work.
  *
- * All three mime types are asked for. A decoder that declares plain `audio/eac3` can
+ * Both mime types are asked for. A decoder that declares plain `audio/eac3` can
  * carry a JOC stream — the height objects are dropped and what comes out is the
  * 5.1 core downmixed, which is a lesser render but not a failure — and Media3
  * will fall back to one for exactly that reason. Asking for only the JOC mime
  * would refuse Atmos on every device that ships the ordinary E-AC-3 decoder.
- * `audio/ac4` is the same question for the newer AC-4 carrier.
  *
  * [MediaCodecList] is then a backstop rather than the primary answer, for the
  * case where the Media3 query throws (`DecoderQueryException` is a real
@@ -69,12 +70,12 @@ object DeviceCodecs {
     private const val TAG = "BitChord"
 
     /**
-     * E-AC-3 JOC, the plain E-AC-3 core it degrades to, and AC-4. Any of the
-     * three is enough to say yes — see the note on fallback above. Spelt out
-     * rather than taken from Media3's `MimeTypes`, so that everything outside
+     * E-AC-3 JOC, and the plain E-AC-3 core it degrades to. Either decoder is
+     * enough to say yes — see the note on fallback above. Spelt out rather
+     * than taken from Media3's `MimeTypes`, so that everything outside
      * [media3Decoders] stays clear of the unstable API surface.
      */
-    private val DOLBY_MIMES = listOf("audio/eac3-joc", "audio/eac3", "audio/ac4")
+    private val DOLBY_MIMES = listOf("audio/eac3-joc", "audio/eac3")
 
     @Volatile
     private var probed: Boolean? = null
@@ -89,8 +90,7 @@ object DeviceCodecs {
     internal var forced: Boolean? = null
 
     /**
-     * Whether a Dolby Atmos stream (E-AC-3 JOC or AC-4) would find a decoder
-     * on this device.
+     * Whether an E-AC-3 (JOC) stream would find a decoder on this device.
      *
      * Answered once per process and cached: the codec list cannot change while
      * the app is running, and the query is not free — a `MediaCodecList` walk
@@ -98,6 +98,24 @@ object DeviceCodecs {
      */
     val playsDolbyAtmos: Boolean
         get() = forced ?: probed ?: probe().also { probed = it }
+
+    /**
+     * Whether sources should be asked for Dolby Atmos at all: this phone can
+     * decode it, the listener has it on, and no bit-perfect output is ready
+     * to take the music. Bit-perfect output carries stereo PCM only and
+     * bypasses the mixer where Atmos is rendered, so an Atmos track would
+     * only fall back to normal output; the stereo lossless version plays
+     * bit-perfect instead.
+     */
+    val atmosWanted: Boolean
+        get() = playsDolbyAtmos && AppSettings.dolbyAtmos.value && !BitPerfectOutput.ready.value
+
+    /** Why [atmosWanted] is false, for logs. */
+    fun atmosRefusal(): String = when {
+        !playsDolbyAtmos -> "which this device has no decoder for"
+        BitPerfectOutput.ready.value -> "which bit-perfect output cannot carry"
+        else -> "which is switched off in Settings"
+    }
 
     /**
      * Yes on anything that cannot be established.

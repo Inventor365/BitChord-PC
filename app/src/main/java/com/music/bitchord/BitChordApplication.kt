@@ -118,7 +118,6 @@ class BitChordApplication : Application(), SingletonImageLoader.Factory {
         AppSettings.init(this, authStore)
         // A restored backup can bring the switch back without the manifest alias it drives.
         com.music.bitchord.playback.ExternalLinks.sync(this)
-        com.music.bitchord.data.debrid.DebridCache.init(this)
         // Before anything resolves a track: an addon with `checkValidLossless`
         // is gated on this, and the gate reads "no" until it has looked.
         com.music.bitchord.playback.audio.LosslessOutput.init(this)
@@ -225,14 +224,12 @@ class BitChordApplication : Application(), SingletonImageLoader.Factory {
                 add(OkHttpNetworkFetcherFactory(callFactory = { coilHttpClient }))
             }
             .memoryCache {
-                if (AppSettings.audioCacheLimitBytes.value == AppSettings.DISABLED_CACHE_LIMIT_BYTES) null
-                else MemoryCache.Builder()
+                MemoryCache.Builder()
                     .maxSizePercent(context, 0.20)
                     .build()
             }
             .diskCache {
-                if (AppSettings.audioCacheLimitBytes.value == AppSettings.DISABLED_CACHE_LIMIT_BYTES) null
-                else DiskCache.Builder()
+                DiskCache.Builder()
                     .directory(cacheDir.resolve("image_cache"))
                     .maxSizeBytes(100L * 1024 * 1024)
                     .build()

@@ -1,7 +1,6 @@
 package com.music.bitchord.data.sources
 
 import com.music.bitchord.data.TrackLog
-import com.music.bitchord.data.debrid.DebridCache
 import com.music.bitchord.data.model.Song
 import com.music.bitchord.data.settings.AppSettings
 import com.music.bitchord.data.sources.addon.AddonClient
@@ -244,28 +243,6 @@ class AddonSource(
      */
     suspend fun stream(trackId: String, request: StreamRequest, stereoOnly: Boolean): SourceStream? =
         withContext(Dispatchers.IO) {
-            val cacheKey = DebridCache.addonCacheKey(config.id, trackId)
-            // A ready provider-side copy is independent of the addon's uptime:
-            // mint a fresh TorBox URL and avoid the addon's stream request.
-            DebridCache.cachedAddonStream(cacheKey)?.let { cached ->
-                val answersRequest = when (request) {
-                    is StreamRequest.Lossless -> cached.format.isLossless == true
-                    is StreamRequest.Capped -> cached.format.kbps?.let { it <= request.maxKbps } == true
-                    is StreamRequest.Best -> true
-                }
-                val atmosAllowed = DeviceCodecs.playsDolbyAtmos && AppSettings.dolbyAtmos.value
-                if (answersRequest && !ModuleSource.unplayable(cached.format, atmosAllowed)) {
-                    TrackLog.d(TAG, "${config.displayName}: replaying $trackId from the Debrid cache")
-                    return@withContext SourceStream(
-                        url = cached.url,
-                        format = cached.format,
-                        durationSec = cached.durationSec,
-                        sourceConfigId = config.id,
-                        sourceNameOverride = "Debrid (TorBox)",
-                    )
-                }
-                TrackLog.d(TAG, "${config.displayName}: Debrid cache copy doesn't satisfy this play; using addon")
-            }
             if (!admitted("a stream")) return@withContext null
             val tier = request.tier
             val result = client.stream(trackId, tier, stereoOnly)
@@ -297,20 +274,7 @@ class AddonSource(
                 return@withContext fromRow(trackId, tier)
             }
 
-            val opened = openable(url, answer, trackId, tier)
-            if (opened != null) {
-                val row = rows[trackId]
-                DebridCache.autoCacheAddonStream(
-                    answer,
-                    cacheKey = cacheKey,
-                    title = row?.title,
-                    artist = row?.artist,
-                    format = row?.format,
-                    sourceFormat = opened.format,
-                    durationSec = opened.durationSec,
-                )
-            }
-            opened.also { stream ->
+            openable(url, answer, trackId, tier).also { stream ->
                 if (stereoOnly && stream?.format?.isDolbyAtmos == true) {
                     TrackLog.w(
                         TAG,
@@ -336,20 +300,7 @@ class AddonSource(
         val row = rows[trackId] ?: return null
         val url = row.streamURL?.ifBlank { null } ?: return null
         TrackLog.d(TAG, "${config.displayName}: using the search row's own URL for $trackId")
-        val answer = AddonStream(url = url, format = row.format)
-        val opened = openable(url, answer, trackId, tier)
-        if (opened != null) {
-            DebridCache.autoCacheAddonStream(
-                answer,
-                cacheKey = DebridCache.addonCacheKey(config.id, trackId),
-                title = row.title,
-                artist = row.artist,
-                format = row.format,
-                sourceFormat = opened.format,
-                durationSec = opened.durationSec,
-            )
-        }
-        return opened
+        return openable(url, AddonStream(url = url, format = row.format), trackId, tier)
     }
 
     /**
@@ -384,13 +335,8 @@ class AddonSource(
         }
 
         val format = formatOf(answer, url, tier)
-        val playsAtmos = DeviceCodecs.playsDolbyAtmos
-        if (ModuleSource.unplayable(format, atmosAllowed = playsAtmos && AppSettings.dolbyAtmos.value)) {
-            val why = if (playsAtmos) {
-                "which is switched off in Settings"
-            } else {
-                "which this device has no decoder for"
-            }
+        if (ModuleSource.unplayable(format, atmosAllowed = DeviceCodecs.atmosWanted)) {
+            val why = DeviceCodecs.atmosRefusal()
             TrackLog.w(
                 TAG,
                 "${config.displayName}: answered a $tier request with ${format.summary}, $why — passing",
@@ -517,7 +463,7 @@ class AddonSource(
          */
         val AUDIO_CODECS = setOf(
             "flac", "alac", "wav", "aiff", "mp3", "aac", "he-aac", "m4a", "mp4",
-            "ogg", "opus", "vorbis", "webm", "eac3-joc", "ec3-joc", "ac4", "ac-4",
+            "ogg", "opus", "vorbis", "webm", "eac3-joc", "ec3-joc",
         )
     }
 }
