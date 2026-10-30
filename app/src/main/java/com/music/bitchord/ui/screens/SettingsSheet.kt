@@ -172,6 +172,7 @@ import com.music.bitchord.data.sources.DeviceCodecs
 import com.music.bitchord.data.settings.AudioQuality
 import com.music.bitchord.data.settings.DownloadQuality
 import com.music.bitchord.data.settings.ThemeMode
+import com.music.bitchord.data.settings.AppFont
 import com.music.bitchord.data.stats.Backup
 import com.music.bitchord.playback.AudioCache
 import com.music.bitchord.ui.player.fullBleedArtworkAvailable
@@ -262,6 +263,7 @@ fun SettingsScreen(
     val lyricsSources by AppSettings.lyricsSources.collectAsStateWithLifecycle()
     val translationLanguage by AppSettings.translationLanguage.collectAsStateWithLifecycle()
     val theme by AppSettings.themeMode.collectAsStateWithLifecycle()
+    val appFont by AppSettings.appFont.collectAsStateWithLifecycle()
     val sessionId by AppSettings.audioSessionId.collectAsStateWithLifecycle()
     val outputPcmMode by AppSettings.outputPcmMode.collectAsStateWithLifecycle()
     val preferUsbDac by AppSettings.preferUsbDac.collectAsStateWithLifecycle()
@@ -270,6 +272,7 @@ fun SettingsScreen(
     val bitPerfectReady by BitPerfectOutput.ready.collectAsStateWithLifecycle()
     val dacVolume by BitPerfectOutput.hardwareVolume.collectAsStateWithLifecycle()
     val usbAllowFixedVolume by AppSettings.usbAllowFixedVolume.collectAsStateWithLifecycle()
+    val convertForLimitedDac by AppSettings.convertForLimitedDac.collectAsStateWithLifecycle()
     val loudnessNormalization by AppSettings.loudnessNormalization.collectAsStateWithLifecycle()
     val loudnessOffOnSpeaker by AppSettings.loudnessOffOnSpeaker.collectAsStateWithLifecycle()
     val outputStatus by AudioOutputStatus.current.collectAsStateWithLifecycle()
@@ -281,6 +284,7 @@ fun SettingsScreen(
     val wifiOnlyDownloads by AppSettings.wifiOnlyDownloads.collectAsStateWithLifecycle()
     val exportDownloads by AppSettings.exportDownloads.collectAsStateWithLifecycle()
     val autoDownloadPlaylists by AppSettings.autoDownloadPlaylists.collectAsStateWithLifecycle()
+    val syncDownloadedPlaylists by AppSettings.syncDownloadedPlaylists.collectAsStateWithLifecycle()
     val stopOnTaskRemoved by AppSettings.stopOnTaskRemoved.collectAsStateWithLifecycle()
     val hideVolumeBar by AppSettings.hideVolumeBar.collectAsStateWithLifecycle()
     val hideStatusBarInPlayer by AppSettings.hideStatusBarInPlayer.collectAsStateWithLifecycle()
@@ -629,6 +633,15 @@ fun SettingsScreen(
                     subtitle = "Music/BitChord".takeIf { exportDownloads },
                 )
             }
+            val syncPlaylistsTitle = stringResource(R.string.sync_downloaded_playlists)
+            row(syncPlaylistsTitle, "playlist", "new songs", "background", "automatic") {
+                SettingsSubRow(
+                    title = syncPlaylistsTitle,
+                    checked = syncDownloadedPlaylists,
+                    onCheckedChange = AppSettings::setSyncDownloadedPlaylists,
+                    subtitle = stringResource(R.string.sync_downloaded_playlists_subtitle),
+                )
+            }
         }
 
         if (shows(SettingsCategory.PLAYBACK)) SearchableSettingsGroup(
@@ -722,6 +735,17 @@ fun SettingsScreen(
                         onCheckedChange = { on ->
                             if (on) onConfirmFixedVolume() else AppSettings.setUsbAllowFixedVolume(false)
                         },
+                    )
+                }
+            }
+            if (bitPerfectMode != BitPerfectMode.OFF && bitPerfectMode.isSupported) {
+                val convertTitle = stringResource(R.string.convert_for_limited_dac)
+                row(convertTitle, "convert", "resample", "usb", "dac", "bitperfect", divided = false) {
+                    SettingsSubRow(
+                        title = convertTitle,
+                        subtitle = stringResource(R.string.convert_for_limited_dac_subtitle),
+                        checked = convertForLimitedDac,
+                        onCheckedChange = AppSettings::setConvertForLimitedDac,
                     )
                 }
             }
@@ -888,6 +912,16 @@ fun SettingsScreen(
                     selectedIndex = ThemeMode.entries.indexOf(theme),
                     onSelect = { AppSettings.setThemeMode(ThemeMode.entries[it]) },
                     modifier = Modifier.padding(start = ROW_INSET, end = ROW_INSET, bottom = 14.dp),
+                )
+            }
+            val fontTitle = stringResource(R.string.font)
+            row(fontTitle, "typeface", "sf pro", "legacy") {
+                SettingsRow(
+                    icon = SfIcons.Font,
+                    title = fontTitle,
+                    subtitle = appFont.description(),
+                    value = appFont.localizedLabel(),
+                    onClick = { onOpenChoice(SettingsChoiceKind.FONT) },
                 )
             }
             val reduceAnimationTitle = stringResource(R.string.reduce_animation)
@@ -1959,6 +1993,23 @@ private fun ThemeMode.localizedLabel(): String = stringResource(
 )
 
 @Composable
+private fun AppFont.localizedLabel(): String = stringResource(
+    when (this) {
+        AppFont.DEFAULT -> R.string.font_default
+        AppFont.LEGACY -> R.string.font_legacy
+    },
+)
+
+/** The typeface each [AppFont] sets, named under its label. */
+@Composable
+private fun AppFont.description(): String = stringResource(
+    when (this) {
+        AppFont.DEFAULT -> R.string.font_default_subtitle
+        AppFont.LEGACY -> R.string.font_legacy_subtitle
+    },
+)
+
+@Composable
 private fun AutomixPerformanceMode.localizedLabel(): String = stringResource(
     when (this) {
         AutomixPerformanceMode.EFFICIENT -> R.string.automix_mode_efficient
@@ -2177,6 +2228,12 @@ private fun BitPerfectMode.description(): String = stringResource(
 @Composable
 private fun bitPerfectSubtitle(mode: BitPerfectMode, status: BitPerfectOutput.Status): String = when {
     mode == BitPerfectMode.OFF || !mode.isSupported -> mode.description()
+    status.active && status.dacLimited -> stringResource(
+        R.string.bit_perfect_status_dac_limited,
+        status.deviceName.orEmpty(),
+        "%.1f".format(status.sampleRateHz / 1000.0),
+        status.outputBits,
+    )
     status.active && !status.exact -> stringResource(
         R.string.bit_perfect_status_inexact,
         status.deviceName.orEmpty(),
@@ -2702,6 +2759,7 @@ enum class SettingsChoiceKind(@param:StringRes val title: Int) {
     DOWNLOAD_QUALITY(R.string.download_quality),
     AUTOMIX_PERFORMANCE(R.string.automix_performance),
     BIT_PERFECT(R.string.bit_perfect_output),
+    FONT(R.string.font),
 }
 
 /** The main page's list of categories: a glyph and a name each, and a chevron into it. */
@@ -2818,6 +2876,20 @@ fun SettingsChoicePage(
                     // Leaving the mode needs no warning; entering it hands
                     // volume to the DAC, at full scale.
                     if (mode == BitPerfectMode.OFF) AppSettings.setBitPerfectMode(mode) else onConfirmBitPerfect(mode)
+                }
+            }
+
+            SettingsChoiceKind.FONT -> {
+                val selected by AppSettings.appFont.collectAsStateWithLifecycle()
+                ChoiceGroup(
+                    options = AppFont.entries,
+                    selected = selected,
+                    label = { it.localizedLabel() },
+                    detail = { it.description() },
+                    footer = stringResource(R.string.font_footer),
+                ) { font ->
+                    AppSettings.setAppFont(font)
+                    onChosen()
                 }
             }
         }

@@ -337,6 +337,11 @@ data class OutputFormatUi(
      * exclusive output, with every sample of the track carried exactly.
      */
     val bitPerfect: Boolean = false,
+    /**
+     * On the exclusive output, converted to the best format the DAC has because
+     * it can't take the track's own. As good as this DAC gets, but not bit-perfect.
+     */
+    val dacLimited: Boolean = false,
 )
 
 data class PartyUi(
@@ -382,6 +387,12 @@ class CanvasVideoSpec(
     val bottomFade: Float,
     val bottomFadeEndPx: Float?,
     val pausedForTransition: Boolean,
+    val resumeDelayMs: Long,
+    val startPositionMs: Long,
+    val revealInstantly: Boolean,
+    val captureStill: Boolean,
+    val onStillCaptured: (ImageBitmap?, Long) -> Unit,
+    val onResumed: () -> Unit,
 )
 
 /**
@@ -401,11 +412,27 @@ fun CanvasArtworkPlayer(
     onRenderedChanged: (Boolean) -> Unit = {},
     onFrameCaptured: (ImageBitmap) -> Unit = {},
     refreshFrameEveryMs: Long? = null,
+    /** 0 for no frames at all, which saves a main-thread readback on each fade-in. */
     frameCapturePx: Int = CANVAS_FRAME_CAPTURE_PX,
     onCoverChanged: (Float) -> Unit = {},
     bottomFade: Float = 0f,
     bottomFadeEndPx: Float? = null,
     pausedForTransition: Boolean = false,
+    /** How long the clip holds still after [pausedForTransition] lifts before it plays on. */
+    resumeDelayMs: Long = 0L,
+    /** Where in the clip to start — a still's position, so its first frame is that still. */
+    startPositionMs: Long = 0L,
+    /** Shows the first frame at once rather than fading it in: there is a still under it that it matches. */
+    revealInstantly: Boolean = false,
+    /**
+     * Asks for the frame on screen, once each time this turns true, through
+     * [onStillCaptured] with the position it was taken at — null if it could
+     * not be read. Only while [pausedForTransition], so the frame holds still.
+     */
+    captureStill: Boolean = false,
+    onStillCaptured: (ImageBitmap?, Long) -> Unit = { _, _ -> },
+    /** The clip has moved on from the frame it was last captured or started at. */
+    onResumed: () -> Unit = {},
 ) {
     PlayerPlatform.host.CanvasVideo(
         CanvasVideoSpec(
@@ -424,6 +451,12 @@ fun CanvasArtworkPlayer(
             bottomFade = bottomFade,
             bottomFadeEndPx = bottomFadeEndPx,
             pausedForTransition = pausedForTransition,
+            resumeDelayMs = resumeDelayMs,
+            startPositionMs = startPositionMs,
+            revealInstantly = revealInstantly,
+            captureStill = captureStill,
+            onStillCaptured = onStillCaptured,
+            onResumed = onResumed,
         ),
         modifier,
     )

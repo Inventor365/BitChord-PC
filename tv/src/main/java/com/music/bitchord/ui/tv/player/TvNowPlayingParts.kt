@@ -94,6 +94,7 @@ import com.music.bitchord.sharedui.resources.ic_player_pause
 import com.music.bitchord.sharedui.resources.ic_player_play
 import com.music.bitchord.sharedui.resources.ic_player_previous
 import com.music.bitchord.ui.icons.BitChordIcons
+import com.music.bitchord.data.settings.TvPlayerStyle
 import com.music.bitchord.ui.player.ArtworkMeshBackdrop
 import com.music.bitchord.ui.player.CanvasArtworkPlayer
 import com.music.bitchord.ui.player.SyncedLyricsPanel
@@ -121,13 +122,20 @@ import java.util.Locale
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
+ * The artwork's colours, smeared into the phone's moving mesh, darkened a touch
+ * so white type always reads over it — or plain black under [TvPlayerStyle.AMOLED].
  * Constrained boxes use a static tint: no full-screen RenderEffect or mesh decode.
  */
 @Composable
 fun TvPlayerBackground(
     artworkUrl: String?,
+    style: TvPlayerStyle,
     modifier: Modifier = Modifier,
 ) {
+    if (style == TvPlayerStyle.AMOLED) {
+        Box(modifier = modifier.fillMaxSize().background(Color.Black))
+        return
+    }
     val profile = rememberTvPerformanceProfile()
     val reduceBlur by AppSettings.reduceDynamicBlur.collectAsState()
     if (profile == TvPerformanceProfile.SMOOTH || reduceBlur) {

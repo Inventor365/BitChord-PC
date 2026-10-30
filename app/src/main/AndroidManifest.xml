@@ -76,6 +76,15 @@
         tools:targetApi="34">
 
         <!--
+          Lets a release build be sampled with simpleperf or Perfetto from adb,
+          so jank is measured on the build users get rather than on a debug
+          build that is slow for its own reasons. No runtime cost.
+        -->
+        <profileable
+            android:shell="true"
+            tools:targetApi="29" />
+
+        <!--
           One UI 7+ only routes an app's ongoing notification to Live
           Notifications / the Now Bar if the app opts in here. Ignored by every
           other OEM. Samsung additionally gates the non-media Live Notification
@@ -671,6 +680,26 @@
             android:name=".download.DownloadService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
+
+        <!-- The tap on a "new songs in this playlist" notification. See PlaylistSync. -->
+        <receiver
+            android:name=".download.PlaylistSyncApproval"
+            android:exported="false" />
+
+        <!--
+          WorkManager comes up on first use instead of at every launch, since the
+          one thing using it is a setting that is off by default.
+        -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
 
         <!--
           Home-screen widgets. Two providers so the picker lists a 2×2 and a 4×2,

@@ -32,7 +32,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import com.music.bitchord.ui.icons.SfIcons
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -156,7 +156,10 @@ fun topBarContentPadding(): Dp = topBarHeight() + TopBarContentGap
 @Composable
 fun FrostedTopBar(
     title: String,
-    scrolled: Boolean,
+    // A lambda, not a value: this flips as a feed leaves its very top, and
+    // reading it in the caller would recompose the whole app on that frame of
+    // the scroll.
+    scrolled: () -> Boolean,
     modifier: Modifier = Modifier,
     /** Leaves the whole bar transparent so the page's own top gradient is the backdrop. */
     transparentBackdrop: Boolean = false,
@@ -182,7 +185,7 @@ fun FrostedTopBar(
     val useFloatingChrome = artworkPageChrome ||
         (LocalLiquidGlassEnabled.current && isGlassSupported())
     val titleAlpha by animateFloatAsState(
-        targetValue = if (scrolled || trailingTitle != null) 1f else 0f,
+        targetValue = if (scrolled() || trailingTitle != null) 1f else 0f,
         animationSpec = tween(220),
         label = "topBarTitleAlpha",
     )
@@ -302,7 +305,7 @@ fun FrostedTopBar(
                         modifier = Modifier.align(Alignment.CenterStart).padding(start = 4.dp),
                     ) {
                         Icon(
-                            Icons.AutoMirrored.Rounded.ArrowBack,
+                            SfIcons.ArrowBack,
                             contentDescription = stringResource(R.string.back),
                             tint = MaterialTheme.colorScheme.onSurface,
                         )
@@ -370,7 +373,7 @@ private fun ArtworkPageBackButton(
             .then(artworkPageSurface(shape = shape, hazeState = hazeState)),
     ) {
         Icon(
-            Icons.AutoMirrored.Rounded.ArrowBack,
+            SfIcons.ArrowBack,
             contentDescription = stringResource(R.string.back),
             tint = contentColor,
         )

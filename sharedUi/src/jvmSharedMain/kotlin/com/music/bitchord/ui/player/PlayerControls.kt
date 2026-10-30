@@ -1167,10 +1167,10 @@ internal fun OutputCaption(
     val badge = rememberPartyBadge()
     val outputName = rememberAudioOutputName(accountName)
     val outputFormat by PlayerPlatform.host.outputFormat.collectAsStateWithLifecycle()
-    // The shine means one thing: the DAC is receiving this track bit-perfect.
-    // Anything weaker — a hi-res stream on a float-capable route — still
-    // passes through Android's mixer, which may resample it, so it no longer
-    // earns the same mark.
+    // The shine means one thing: the DAC has this track to itself, bit-perfect
+    // or at the most the DAC can take. Anything weaker — a hi-res stream on a
+    // float-capable route — still passes through Android's mixer, which may
+    // resample it, so it no longer earns the same mark.
     // The host's first name, exactly as the output line already shortens the
     // account's — "Kushagra's Jam" alongside "Kushagra's Phone".
     val jamName = badge.hostFirstName
@@ -1179,7 +1179,7 @@ internal fun OutputCaption(
     val captionModifier = Modifier
         .fillMaxWidth(0.65f)
         .clickable { if (badge.inParty) onOpenMembers() else onOpenOutput() }
-    if (!badge.inParty && outputFormat.bitPerfect) {
+    if (!badge.inParty && (outputFormat.bitPerfect || outputFormat.dacLimited)) {
         ShimmerText(
             text = outputName,
             style = MaterialTheme.typography.labelSmall.copy(
@@ -1389,8 +1389,8 @@ internal const val MARQUEE_ARTIST_STAGGER_MS = 3_000L
  *
  * A line too long for its width fades out at its end rather than stopping at
  * a hard edge, as Apple's does, and once it is crawling at its start too — see
- * [marqueeFade]. [trailing] sits after the line, outside the crawl, where
- * Apple puts the explicit badge.
+ * [marqueeFade]. [leading] and [trailing] sit either side of the line,
+ * outside the crawl — the explicit badge goes before the title.
  *
  * With [enabled] false the line holds still at its start — no copies, no
  * animation, nothing left running off screen — and only fades at its end.
@@ -1403,12 +1403,17 @@ internal fun MarqueeText(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     startDelayMillis: Long = 0L,
+    leading: (@Composable () -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
     onOverflowChange: (Boolean) -> Unit = {},
 ) {
     val density = LocalDensity.current
     val textMeasurer = rememberTextMeasurer()
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+        if (leading != null) {
+            leading()
+            Spacer(Modifier.width(6.dp))
+        }
         BoxWithConstraints(Modifier.weight(1f, fill = false).clipToBounds()) {
             val maxWidthPx = constraints.maxWidth
             val layout = remember(text, style, maxWidthPx) {

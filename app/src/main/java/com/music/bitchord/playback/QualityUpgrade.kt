@@ -91,36 +91,6 @@ object QualityUpgrade {
 
     private val pending = ConcurrentHashMap<String, Pending>()
     /**
-     * The last question asked about a track, kept past the answer for one
-     * reason: a stream can be found, matched and *then* rejected when its bytes
-     * turn out to be another recording. That rejection is not an answer about
-     * the track, and the next source down the list may still have the right
-     * file — see [SourceResolver.upgradeFor]'s `avoid`. Deliberately separate
-     * from [pending], which [isPending] and [couldStillUpgrade] read: keeping
-     * the live set populated would make an answered track look unanswered.
-     */
-    private val lastAsk = ConcurrentHashMap<String, Pending>()
-
-    /** What [lookAgain] concluded — see [SourceResolver.Upgrade]. */
-    sealed interface Look {
-        data class Found(val stream: SourceStream) : Look
-
-        /** Every source answered, and none held this recording. */
-        data object NoMatch : Look
-
-        /** A source could not answer; the track stays open for another look. */
-        data object Failed : Look
-
-        /** Asked too soon after a failure — nothing was learned, nothing to report. */
-        data object Waiting : Look
-    }
-
-    /** When a failed lookup may be asked again, per track. */
-    private val retryAfter = ConcurrentHashMap<String, Long>()
-
-    /** How long a track waits before re-asking after a source failed. */
-    const val RETRY_MS = 30_000L
-    /**
      * A second pass to make after a worthwhile lossy upgrade.  The first pass
      * intentionally takes the first source that beats Opus so playback improves
      * quickly; with lossless requested, JioSaavn can be that answer while a
@@ -238,9 +208,7 @@ object QualityUpgrade {
         // played. [SourceResolver.upgradeFor] applies the real quality bar.
         if (target.title.isBlank() || target.isVideo ||
             mediaId in refused ||
-            !SourceResolver.canSubstituteForYouTube() ||
-            // Direct Source Stream plays one stream per track and never swaps.
-            DirectSourceGate.isActive()
+            !SourceResolver.canSubstituteForYouTube()
         ) {
             inFlight?.cancel()
             return false
@@ -318,9 +286,13 @@ object QualityUpgrade {
         // overruled — see [askByHand].
         if (mediaId !in handAsked && uri.getQueryParameter(MARKER) != null) return false
         if (mediaId in asked || mediaId in refused || pending.containsKey(mediaId)) return false
-        // Direct Source Stream never swaps on its own. Asking by hand still
-        // works: that is the listener overruling the copy, not a background hunt.
-        if (mediaId !in handAsked && DirectSourceGate.isActive()) return false
+        // Direct Source Stream never swaps an addon's answer on its own. A track
+        // it had to start on YouTube is still looked for, as it is with the
+        // setting off. Asking by hand always works: that is the listener
+        // overruling the copy, not a background hunt.
+        if (mediaId !in handAsked && DirectSourceGate.isActive() && !StreamChoice.isYouTube(mediaId)) {
+            return false
+        }
         // Same widening as [settledForLess]: a track playing off the cache is
         // worth a second look whenever anything outranks YouTube, not only
         // when lossless was asked for.
@@ -393,7 +365,12 @@ object QualityUpgrade {
         // entry here at all: [pending] keeps [couldStillUpgrade] off it for
         // exactly as long as the question is genuinely open, and marking it
         // answered before it has been asked is what made a skip permanent.
-        if (NerdStats.isLosslessMime(playingMime)) {
+        // Dolby Atmos counts as done too, as it does everywhere else here — see
+        // [needsLosslessFollowUp]. A whole addon file now stays in the cache, so
+        // an Atmos mix can be replayed from disk, and [cachedFloor] describes it
+        // only by bitrate: judged as lossy, it would have a stereo FLAC cut in
+        // over the mix the listener chose.
+        if (NerdStats.isLosslessMime(playingMime) || NerdStats.isDolbyAtmosMime(playingMime)) {
             asked += mediaId
             // The codec is named because this line is a dead end — the track is
             // in [asked] by now and will never be offered an upgrade again — and
@@ -459,24 +436,8 @@ object QualityUpgrade {
         }
     }
 
-    suspend fun lookAgain(
-        mediaId: String,
-        playingDurationSec: Int?,
-        /** Sources already tried for this track — see [SourceResolver.upgradeFor]. */
-        avoid: Set<String> = emptySet(),
-    ): Look {
-        // A failed lookup is re-asked on a delay, not on every pause and resume.
-        retryAfter[mediaId]?.let { due ->
-            if (System.currentTimeMillis() < due) return Look.Waiting
-        }
-        // The live question first, then the one this track already asked. The
-        // latter exists only so a stream that was found and *then* rejected can
-        // be re-asked without the source that served it - see [lastAsk].
-        val waiting = pending[mediaId] ?: lastAsk[mediaId] ?: run {
-            TrackLog.d(TAG, "no question left to re-ask for $mediaId", about = mediaId)
-            return Look.NoMatch
-        }
-        lastAsk[mediaId] = waiting
+    suspend fun lookAgain(mediaId: String, playingDurationSec: Int?): SourceStream? {
+        val waiting = pending[mediaId] ?: return null
         var found: SourceStream? = null
         /**
          * Whether the search got as far as an answer, as opposed to being
@@ -515,14 +476,23 @@ object QualityUpgrade {
             // which played for five seconds of silence and was then put back.
             waiting.inFlight?.let { lookup ->
                 val late = runCatching { lookup.await() }.getOrNull()
-                if (late != null &&
-                    // The original lookup is the *first* answer, and the retry
-                    // exists because that answer's bytes were rejected. Handing
-                    // it back here would re-audition the same file — measured as
-                    // two identical rejections 94 ms apart.
-                    late.sourceConfigId !in avoid &&
-                    SourceResolver.worthSwapping(late.format, waiting.playing) &&
-                    SourceResolver.sameRecordingAs(late.durationSec, effectiveDurationSec)
+                val slack = SourceResolver.upgradeSlackSec()
+                val sameLength = late != null &&
+                    SourceResolver.sameRecordingAs(late.durationSec, effectiveDurationSec, slack)
+                // The live lookup logs "substituted … at <format>" on finding
+                // this, so a refusal that said nothing read as a swap that had
+                // happened. Named, with both runtimes and the bar between them.
+                if (late != null && !sameLength) {
+                    TrackLog.d(
+                        TAG,
+                        "'${waiting.target.title}': the live lookup's ${late.format.summary} runs " +
+                            "${late.durationSec ?: "?"}s against ${effectiveDurationSec ?: "?"}s playing, " +
+                            "outside the ±${slack}s tolerance; searching again",
+                        about = mediaId,
+                    )
+                }
+                if (late != null && sameLength &&
+                    SourceResolver.worthSwapping(late.format, waiting.playing)
                 ) {
                     found = late
                     if (needsLosslessFollowUp(late.format)) {
@@ -534,52 +504,28 @@ object QualityUpgrade {
                         )
                     }
                     answered = true
-                    retryAfter.remove(mediaId)
-                    return Look.Found(late)
+                    return late
                 }
             }
             // It finished with nothing better, so the question gets asked
             // again from scratch — this time waiting on every module, which is
             // what the live path could not afford to do. The source already
             // serving the track is left out — see [SourceResolver.upgradeFor].
-            when (val outcome = SourceResolver.upgradeFor(
+            SourceResolver.upgradeFor(
                 waiting.target.copy(durationSec = effectiveDurationSec),
                 playing = waiting.playing,
                 servedBy = waiting.servedBy,
-                avoid = avoid,
-            )) {
-                is SourceResolver.Upgrade.Found -> {
-                    val stream = outcome.stream
-                    found = stream
-                    if (needsLosslessFollowUp(stream.format)) {
-                        followUps[mediaId] = waiting.copy(
-                            target = waiting.target.copy(durationSec = effectiveDurationSec),
-                            inFlight = null,
-                            playing = stream.format,
-                            servedBy = stream.sourceConfigId,
-                        )
-                    }
-                    answered = true
-                    retryAfter.remove(mediaId)
-                    Look.Found(stream)
+            ).also {
+                found = it
+                if (it != null && needsLosslessFollowUp(it.format)) {
+                    followUps[mediaId] = waiting.copy(
+                        target = waiting.target.copy(durationSec = effectiveDurationSec),
+                        inFlight = null,
+                        playing = it.format,
+                        servedBy = it.sourceConfigId,
+                    )
                 }
-
-                SourceResolver.Upgrade.NoMatch -> {
-                    answered = true
-                    retryAfter.remove(mediaId)
-                    TrackLog.d(TAG, "no lossless match for $mediaId", about = mediaId)
-                    Look.NoMatch
-                }
-
-                SourceResolver.Upgrade.Failed -> {
-                    // A source that could not answer has not answered. The track
-                    // stays pending, so [PlaybackService] can ask again on
-                    // [RETRY_MS] instead of writing the recording off for the
-                    // rest of the playback.
-                    retryAfter[mediaId] = System.currentTimeMillis() + RETRY_MS
-                    TrackLog.d(TAG, "lossless lookup failed for $mediaId; re-asking later", about = mediaId)
-                    Look.Failed
-                }
+                answered = true
             }
         } finally {
             if (answered) {
@@ -656,10 +602,6 @@ object QualityUpgrade {
     fun onPlaybackStarted(mediaId: String, rendition: String?) {
         if (rendition != null) return
         asked -= mediaId
-        // A fresh play is a fresh question: the snapshot exists for a retry
-        // inside one playback, not across two.
-        lastAsk.remove(mediaId)
-        retryAfter.remove(mediaId)
     }
 
     /**
@@ -684,14 +626,25 @@ object QualityUpgrade {
      *    playing its upgraded copy is exactly the one that should be offered
      *    the revert.
      *  - **A recorded choice that is not a substitute.** `null` means nothing
-     *    resolved this track in this process — it is playing off the disk cache
-     *    — and what is in that entry is genuinely unknown. Today's behaviour is
-     *    kept there deliberately: revert stays on offer as the escape hatch for
-     *    a substitution nothing announced, which is the case it was written for.
+     *    resolved this track in this process — it is playing off the disk cache.
+     *    The entry's own origin tag answers it then, see [cachedOrigin]. Only
+     *    an entry with no tag is genuinely unknown, and revert stays on offer
+     *    there as the escape hatch for a substitution nothing announced.
+     *
+     * @param cachedOrigin who filled the cache entry the item reads from — see
+     *   [AudioCache.originOf]. Without it every track replayed from the cache
+     *   after a restart read as unknown, which is every such track: the menu
+     *   offered "Revert to original" over YouTube's own Opus and hid "Upgrade
+     *   quality", the one row that could have helped.
      */
-    fun isKnownToBePlayingYouTubesOwn(mediaId: String, rendition: String?): Boolean {
+    fun isKnownToBePlayingYouTubesOwn(
+        mediaId: String,
+        rendition: String?,
+        cachedOrigin: AudioCache.Origin? = null,
+    ): Boolean {
         if (rendition != null) return false
-        return StreamChoice.of(mediaId) != null && !StreamChoice.isSubstitute(mediaId)
+        if (StreamChoice.of(mediaId) != null) return !StreamChoice.isSubstitute(mediaId)
+        return cachedOrigin == AudioCache.Origin.YOUTUBE
     }
 
     /**
@@ -807,8 +760,6 @@ object QualityUpgrade {
         (pending.keys + followUps.keys + forced.keys + shelved.keys + auditioning).forEach(::forget)
         asked.clear()
         refused.clear()
-        lastAsk.clear()
-        retryAfter.clear()
     }
 
     /**
