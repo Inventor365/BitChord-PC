@@ -1,6 +1,7 @@
 package com.music.bitchord.desktop
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,7 +22,11 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.ContentCopy
+import androidx.compose.material.icons.rounded.ContentPaste
+import androidx.compose.material.icons.rounded.OpenInNew
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -45,12 +51,15 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.music.bitchord.data.model.Song
 import com.music.bitchord.data.spotify.SpotifyImportTrack
 import com.music.bitchord.data.spotify.SpotifyImporter
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Signing in to Last.fm — the whole setup in one dialog.
@@ -182,37 +191,184 @@ internal fun DesktopLastfmLoginDialog(onDismiss: () -> Unit) {
 @Composable
 internal fun DesktopSpotifyCanvasDialog(onDismiss: () -> Unit, onSaved: (String) -> Unit) {
     var token by remember { mutableStateOf(DesktopSpotifyToken.cookie()) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var linkCopied by remember { mutableStateOf(false) }
+    var profiles by remember { mutableStateOf<List<DesktopBrowserCookies.Profile>>(emptyList()) }
+    var importingProfile by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
     val focus = remember { FocusRequester() }
-    LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
+    LaunchedEffect(Unit) {
+        runCatching { focus.requestFocus() }
+        profiles = withContext(Dispatchers.IO) {
+            DesktopBrowserCookies.profiles().filterNot {
+                DesktopPlatform.isWindows && it.family == DesktopBrowserCookies.Family.CHROMIUM
+            }
+        }
+    }
 
-    fun save() {
-        DesktopSpotifyToken.setCookie(token.trim())
-        onSaved(token.trim())
+    fun applyInput(raw: String) {
+        val trimmed = raw.trim()
+        if (trimmed.isEmpty()) {
+            DesktopSpotifyToken.setCookie("")
+            onSaved("")
+            onDismiss()
+            return
+        }
+        val extracted = DesktopBrowserCookies.extractSpotifyToken(trimmed)
+        if (extracted == null) {
+            error = "Could not find an sp_dc cookie in that input — copy the sp_dc row, Copy as cURL, or paste the token value."
+            return
+        }
+        DesktopSpotifyToken.setCookie(extracted)
+        onSaved(extracted)
         onDismiss()
     }
 
-    DesktopDialogPanel(onDismiss = onDismiss, maxWidth = 420) {
+    fun save() = applyInput(token)
+
+    DesktopDialogPanel(onDismiss = onDismiss, maxWidth = 480) {
         DialogHeading(
             title = DesktopStrings["spotify_canvas_setup", "Spotify Canvas setup"],
-            message = DesktopStrings["spotify_canvas_setup_description", "To use Spotify Canvas, provide your Spotify sp_dc cookie."],
+            message = error ?: DesktopStrings["spotify_canvas_setup_description", "Sign in to Spotify in your browser, then import from your browser profile or paste your session below."],
+            isError = error != null,
         )
+        // Copyable & openable Spotify browser sign-in link bar
+        Row(
+            Modifier
+                .padding(horizontal = panelInset(22.dp))
+                .padding(bottom = 10.dp)
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color.White.copy(alpha = 0.07f))
+                .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(12.dp))
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    "Spotify browser sign-in link",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.White,
+                )
+                Text(
+                    "accounts.spotify.com → open.spotify.com",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = DesktopSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Row(
+                Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color.White.copy(alpha = 0.10f))
+                    .clickable {
+                        linkCopied = DesktopBrowserCookies.copyToClipboard(DesktopBrowserCookies.SPOTIFY_SIGN_IN_URL)
+                    }
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    if (linkCopied) Icons.Rounded.Check else Icons.Rounded.ContentCopy,
+                    null,
+                    tint = if (linkCopied) DesktopAccent else Color.White,
+                    modifier = Modifier.size(14.dp),
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    if (linkCopied) "Copied!" else "Copy link",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (linkCopied) DesktopAccent else Color.White,
+                )
+            }
+            Row(
+                Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(DesktopAccent.copy(alpha = 0.20f))
+                    .clickable {
+                        DesktopExternalLinks.open(DesktopBrowserCookies.SPOTIFY_SIGN_IN_URL)
+                    }
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    Icons.Rounded.OpenInNew,
+                    null,
+                    tint = DesktopAccent,
+                    modifier = Modifier.size(14.dp),
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    "Open browser",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = DesktopAccent,
+                )
+            }
+        }
+        if (profiles.isNotEmpty()) {
+            Text(
+                "Import from a signed-in browser:",
+                modifier = Modifier.fillMaxWidth().padding(horizontal = panelInset(22.dp), vertical = 4.dp),
+                style = MaterialTheme.typography.labelMedium,
+                color = Color.White,
+            )
+            Column(
+                Modifier
+                    .padding(horizontal = panelInset(22.dp))
+                    .padding(bottom = 8.dp)
+                    .fillMaxWidth()
+                    .heightIn(max = 130.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(Color.White.copy(alpha = 0.05f))
+                    .verticalScroll(rememberScrollState()),
+            ) {
+                profiles.forEach { profile ->
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable(enabled = importingProfile == null) {
+                                importingProfile = profile.label
+                                error = null
+                                scope.launch {
+                                    when (val res = withContext(Dispatchers.IO) { DesktopBrowserCookies.readSpotify(profile) }) {
+                                        is DesktopBrowserCookies.Result.Session -> {
+                                            DesktopSpotifyToken.setCookie(res.cookie)
+                                            onSaved(res.cookie)
+                                            onDismiss()
+                                        }
+                                        DesktopBrowserCookies.Result.SignedOut ->
+                                            error = "${profile.label} is not signed in to Spotify."
+                                        is DesktopBrowserCookies.Result.Unavailable ->
+                                            error = "${profile.label}: ${res.reason}."
+                                    }
+                                    importingProfile = null
+                                }
+                            }
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(profile.label, style = MaterialTheme.typography.bodySmall, color = Color.White, modifier = Modifier.weight(1f))
+                        if (importingProfile == profile.label) {
+                            CircularProgressIndicator(color = DesktopAccent, modifier = Modifier.size(14.dp))
+                        } else {
+                            Text("Import", style = MaterialTheme.typography.labelSmall, color = DesktopAccent)
+                        }
+                    }
+                }
+            }
+        }
         Text(
-            DesktopStrings[
-                "spotify_canvas_setup_steps",
-                "1. Sign in at open.spotify.com in a browser.\n" +
-                    "2. Open Developer Tools, then Application and Cookies.\n" +
-                    "3. Copy the value of the sp_dc cookie.\n" +
-                    "4. Paste it below.",
-            ],
+            "Or paste from your browser (sp_dc value, DevTools Cookies row Ctrl+C, Copy as cURL / PowerShell, or Cookie-Editor JSON):",
             modifier = Modifier.fillMaxWidth().padding(horizontal = panelInset(22.dp), vertical = 4.dp),
             style = MaterialTheme.typography.bodySmall,
             color = DesktopSecondary,
         )
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(8.dp))
         DialogField(
             value = token,
-            onValueChange = { token = it },
-            placeholder = DesktopStrings["spdc_token", "sp_dc token"],
+            onValueChange = { token = it; error = null },
+            placeholder = "Paste sp_dc token, Cookies table row, or cURL command",
             isPassword = true,
             onSubmit = ::save,
             modifier = Modifier.focusRequester(focus),
@@ -220,9 +376,20 @@ internal fun DesktopSpotifyCanvasDialog(onDismiss: () -> Unit, onSaved: (String)
         Row(
             Modifier.fillMaxWidth().padding(horizontal = panelInset(22.dp)),
             horizontalArrangement = Arrangement.Start,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            TextButton(onClick = { DesktopExternalLinks.open("https://open.spotify.com/") }) {
-                Text(DesktopStrings["d_open_spotify", "Open Spotify"], color = DesktopSecondary, style = MaterialTheme.typography.bodySmall)
+            TextButton(
+                onClick = {
+                    val clip = DesktopBrowserCookies.readFromClipboard().orEmpty()
+                    if (clip.isNotBlank()) {
+                        token = clip
+                        applyInput(clip)
+                    }
+                },
+            ) {
+                Icon(Icons.Rounded.ContentPaste, null, tint = DesktopAccent, modifier = Modifier.size(15.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Paste from clipboard & save", color = DesktopAccent, style = MaterialTheme.typography.bodySmall)
             }
         }
         DialogActions(

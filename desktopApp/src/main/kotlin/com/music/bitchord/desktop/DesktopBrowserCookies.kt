@@ -1,6 +1,11 @@
 package com.music.bitchord.desktop
 
+import java.awt.Toolkit
+import java.awt.datatransfer.DataFlavor
+import java.awt.datatransfer.StringSelection
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.nio.file.Files
@@ -9,6 +14,7 @@ import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
 import java.sql.DriverManager
 import java.util.Base64
+import java.util.concurrent.TimeUnit
 import javax.crypto.Cipher
 import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.GCMParameterSpec
@@ -16,8 +22,26 @@ import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
 
-/** The YouTube session a browser on this machine is already holding. */
+/** The YouTube and Spotify sessions a browser on this machine is holding, plus universal session paste parsing. */
 internal object DesktopBrowserCookies {
+
+    const val YOUTUBE_SIGN_IN_URL =
+        "https://accounts.google.com/ServiceLogin?ltmpl=music&service=youtube&passive=true" +
+            "&continue=https%3A%2F%2Fmusic.youtube.com%2F"
+
+    const val SPOTIFY_SIGN_IN_URL =
+        "https://accounts.spotify.com/login?continue=https%3A%2F%2Fopen.spotify.com%2F"
+
+    fun copyToClipboard(text: String): Boolean = runCatching {
+        val selection = StringSelection(text)
+        Toolkit.getDefaultToolkit().systemClipboard.setContents(selection, selection)
+        true
+    }.getOrDefault(false)
+
+    fun readFromClipboard(): String? = runCatching {
+        val clipboard = Toolkit.getDefaultToolkit().systemClipboard
+        (clipboard.getData(DataFlavor.stringFlavor) as? String)?.trim()?.takeIf { it.isNotEmpty() }
+    }.getOrNull()
 
     /** The two cookie-store shapes, which want completely different handling. */
     enum class Family { FIREFOX, CHROMIUM }
@@ -118,6 +142,87 @@ internal object DesktopBrowserCookies {
         }
     }
 
+    /** Reads [profile]'s Spotify `sp_dc` cookie. */
+    fun readSpotify(profile: Profile): Result {
+        if (!Files.isReadable(profile.database)) return Result.Unavailable("its cookie store cannot be read")
+        val copy = runCatching {
+            Files.createTempFile("bitchord-spotify-cookies", ".sqlite").also {
+                Files.copy(profile.database, it, StandardCopyOption.REPLACE_EXISTING)
+            }
+        }.getOrElse { return Result.Unavailable("its cookie store could not be copied: ${it.message}") }
+
+        try {
+            return when (profile.family) {
+                Family.FIREFOX -> readSpotifyFirefox(copy)
+                Family.CHROMIUM -> readSpotifyChromium(copy, profile)
+            }
+        } finally {
+            runCatching { Files.deleteIfExists(copy) }
+        }
+    }
+
+    private fun readSpotifyFirefox(database: Path): Result = query(database) { connection ->
+        connection.prepareStatement(
+            "SELECT value FROM moz_cookies WHERE host LIKE '%spotify.com' AND name = 'sp_dc'",
+        ).use { statement ->
+            statement.executeQuery().use { rows ->
+                while (rows.next()) {
+                    val value = rows.getString(1)?.trim().orEmpty()
+                    if (value.isNotEmpty()) return@query Result.Session(value)
+                }
+            }
+        }
+        Result.SignedOut
+    }
+
+    private fun readSpotifyChromium(database: Path, profile: Profile): Result {
+        val linuxPassword = if (DesktopPlatform.isLinux) {
+            profile.secretAttribute?.let { DesktopSecretStore.lookup(mapOf("application" to it)) }
+        } else {
+            null
+        }
+        val macPassword = if (DesktopPlatform.isMac) {
+            profile.secretAttribute?.let(::macKeychainPassword)
+        } else {
+            null
+        }
+        val windowsKey = if (DesktopPlatform.isWindows) windowsMasterKey(profile.localState) else null
+        return query(database) { connection ->
+            var undecipherable = 0
+            var appBoundCookie = false
+            connection.prepareStatement(
+                "SELECT host_key, value, encrypted_value FROM cookies WHERE host_key LIKE '%spotify.com' AND name = 'sp_dc'",
+            ).use { statement ->
+                statement.executeQuery().use { rows ->
+                    while (rows.next()) {
+                        val host = rows.getString(1).orEmpty()
+                        val plain = rows.getString(2)
+                        val sealed = rows.getBytes(3)
+                        val value = when {
+                            !plain.isNullOrBlank() -> plain
+                            sealed == null || sealed.isEmpty() -> null
+                            else -> decrypt(sealed, host, linuxPassword, windowsKey, macPassword).also {
+                                if (it == null) undecipherable++
+                                if (sealed.hasPrefix(APP_BOUND_PREFIX)) appBoundCookie = true
+                            }
+                        }?.trim()
+                        if (!value.isNullOrEmpty()) return@query Result.Session(value)
+                    }
+                }
+            }
+            when {
+                appBoundCookie -> Result.Unavailable(
+                    "its Spotify sign-in is protected by Windows App-Bound Encryption. " +
+                        "Import from Firefox or paste your sp_dc / cURL instead",
+                )
+                undecipherable > 0 -> Result.Unavailable(
+                    "its cookies are encrypted with a key this session cannot reach",
+                )
+                else -> Result.SignedOut
+            }
+        }
+    }
+
     private fun readFirefox(database: Path): Result = query(database) { connection ->
         val cookies = LinkedHashMap<String, String>()
         connection.prepareStatement(
@@ -140,6 +245,11 @@ internal object DesktopBrowserCookies {
         } else {
             null
         }
+        val macPassword = if (DesktopPlatform.isMac) {
+            profile.secretAttribute?.let(::macKeychainPassword)
+        } else {
+            null
+        }
         val windowsKey = if (DesktopPlatform.isWindows) windowsMasterKey(profile.localState) else null
         return query(database) { connection ->
             val cookies = LinkedHashMap<String, String>()
@@ -157,7 +267,7 @@ internal object DesktopBrowserCookies {
                         val value = when {
                             !plain.isNullOrBlank() -> plain
                             sealed == null || sealed.isEmpty() -> null
-                            else -> decrypt(sealed, host, linuxPassword, windowsKey).also {
+                            else -> decrypt(sealed, host, linuxPassword, windowsKey, macPassword).also {
                                 if (it == null) undecipherable++
                                 if (name in SIGNING_COOKIES && sealed.hasPrefix(APP_BOUND_PREFIX)) {
                                     appBoundSigningCookie = true
@@ -172,7 +282,7 @@ internal object DesktopBrowserCookies {
             when {
                 !hasSigningSecret(jar) && appBoundSigningCookie -> Result.Unavailable(
                     "its YouTube sign-in is protected by Windows App-Bound Encryption. " +
-                        "Import a signed-in Firefox profile or paste the Cookie header instead",
+                        "Import a signed-in Firefox profile or paste the Cookie / cURL instead",
                 )
                 cookies.isEmpty() && undecipherable > 0 -> Result.Unavailable(
                     "its cookies are encrypted with a key this session cannot reach",
@@ -188,11 +298,37 @@ internal object DesktopBrowserCookies {
         host: String,
         keyringPassword: ByteArray?,
         windowsKey: ByteArray?,
-    ): String? = if (DesktopPlatform.isWindows) {
-        decryptWindows(sealed, windowsKey, host)
-    } else {
-        decryptLinux(sealed, host, keyringPassword)
+        macPassword: ByteArray? = null,
+    ): String? = when {
+        DesktopPlatform.isWindows -> decryptWindows(sealed, windowsKey, host)
+        DesktopPlatform.isMac -> decryptMac(sealed, host, macPassword)
+        else -> decryptLinux(sealed, host, keyringPassword)
     }
+
+    /** Chromium's cookie encryption on macOS (`v10` + Keychain Safe Storage password, 1003 iterations). */
+    private fun decryptMac(sealed: ByteArray, host: String, macPassword: ByteArray?): String? {
+        if (sealed.size <= PREFIX_BYTES || macPassword == null) return null
+        val version = String(sealed, 0, PREFIX_BYTES, Charsets.US_ASCII)
+        if (version != "v10") return null
+        val plain = runCatching {
+            val key = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1")
+                .generateSecret(PBEKeySpec(String(macPassword, Charsets.UTF_8).toCharArray(), SALT, MAC_ITERATIONS, KEY_BITS))
+                .encoded
+            Cipher.getInstance("AES/CBC/PKCS5Padding").run {
+                init(Cipher.DECRYPT_MODE, SecretKeySpec(key, "AES"), IvParameterSpec(ByteArray(16) { ' '.code.toByte() }))
+                doFinal(sealed, PREFIX_BYTES, sealed.size - PREFIX_BYTES)
+            }
+        }.getOrElse { return null }
+        return String(stripHostDigest(plain, host), Charsets.UTF_8)
+    }
+
+    private fun macKeychainPassword(serviceName: String): ByteArray? = runCatching {
+        val proc = ProcessBuilder("security", "find-generic-password", "-wa", serviceName)
+            .redirectErrorStream(true)
+            .start()
+        if (!proc.waitFor(4, TimeUnit.SECONDS) || proc.exitValue() != 0) return@runCatching null
+        proc.inputStream.bufferedReader().readText().trim().takeIf { it.isNotEmpty() }?.toByteArray(Charsets.UTF_8)
+    }.getOrNull()
 
     /** Chromium's AES-GCM cookie format after its browser key has been unwrapped with DPAPI. */
     internal fun decryptWindows(sealed: ByteArray, masterKey: ByteArray?, host: String = ""): String? {
@@ -272,6 +408,151 @@ internal object DesktopBrowserCookies {
             entry.substringAfter('=', "").trim().isNotEmpty()
     }
 
+    /**
+     * Extracts a usable YouTube Music `Cookie` header from anything a user might copy out of a browser:
+     * - A raw `Cookie` header (`SAPISID=...; __Secure-3PAPISID=...`)
+     * - "Copy as cURL (bash / cmd)" (`-H 'cookie: ...'`, `-b '...'`, `--cookie "..."`)
+     * - "Copy as PowerShell" (`System.Net.Cookie("SAPISID", "...")`)
+     * - "Copy as fetch" (`"cookie": "..."`)
+     * - Multi-line HTTP request headers (`Cookie: ...`)
+     * - Cookie-Editor / EditThisCookie JSON export (`[{"name":"SAPISID","value":"..."}]`)
+     * - Netscape `cookies.txt` lines
+     * - DevTools Application -> Cookies table copy (`Ctrl+A` / `Ctrl+C` tab-separated rows)
+     */
+    fun extractYouTubeCookie(raw: String): String? {
+        val text = raw.trim()
+        if (text.isEmpty()) return null
+        val parsed = parseCookieEntries(text)
+        if (parsed.isNotEmpty()) {
+            val joined = parsed.entries.joinToString("; ") { "${it.key}=${it.value}" }
+            if (hasSigningSecret(joined)) return joined
+        }
+        val cleaned = text.removePrefix("Cookie:").removePrefix("cookie:").trim()
+        return cleaned.takeIf(::hasSigningSecret)
+    }
+
+    /**
+     * Extracts a Spotify `sp_dc` cookie value from anything a user might copy out of a browser:
+     * - A bare `sp_dc` token value
+     * - `sp_dc=<value>` or a full `Cookie` header
+     * - "Copy as cURL" / "Copy as PowerShell" / "Copy as fetch" / HTTP headers
+     * - Cookie-Editor JSON export / Netscape `cookies.txt`
+     * - DevTools Application -> Cookies table row copy (`sp_dc \t <value> \t .spotify.com ...`)
+     */
+    fun extractSpotifyToken(raw: String): String? {
+        val text = raw.trim()
+        if (text.isEmpty()) return null
+        val parsed = parseCookieEntries(text)
+        parsed["sp_dc"]?.trim()?.takeIf { it.isNotEmpty() }?.let { return it }
+        // Direct `sp_dc=...` match anywhere in the string
+        Regex("""(?:^|[;\s"'])sp_dc\s*=\s*([^;\s"']+)""").find(text)?.groupValues?.get(1)
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
+            ?.let { return it }
+        // Bare token value (alphanumeric/base64url/hyphen/underscore, no spaces or newlines)
+        if (!text.contains('\n') && !text.contains(' ') && !text.contains('=') && text.length >= 20) {
+            return text.trim('"', '\'')
+        }
+        return null
+    }
+
+    /**
+     * Parses cookie `name -> value` pairs from any common browser copy format.
+     */
+    internal fun parseCookieEntries(raw: String): Map<String, String> {
+        val out = LinkedHashMap<String, String>()
+        // Normalize Windows CMD cURL caret-escaping (`^"`, `^&`, `^;`, etc.)
+        val unescaped = if (raw.contains("^\"") || raw.contains("^\n") || raw.contains("^\r\n")) {
+            raw.replace("^\r\n", " ")
+                .replace("^\n", " ")
+                .replace("^\"", "\"")
+                .replace("^'", "'")
+                .replace("^;", ";")
+                .replace("^=", "=")
+                .replace("^&", "&")
+                .replace("^%", "%")
+        } else {
+            raw
+        }
+
+        // 1. JSON array of cookie objects (Cookie-Editor / EditThisCookie: `[{"name":"...","value":"..."}]`)
+        if (unescaped.startsWith("[")) {
+            runCatching {
+                val arr = Json.parseToJsonElement(unescaped) as? JsonArray
+                arr?.forEach { elem ->
+                    val obj = elem as? JsonObject ?: return@forEach
+                    val name = obj["name"]?.jsonPrimitive?.content?.trim().orEmpty()
+                    val value = obj["value"]?.jsonPrimitive?.content?.trim().orEmpty()
+                    if (name.isNotEmpty() && value.isNotEmpty()) out[name] = value
+                }
+            }
+            if (out.isNotEmpty()) return out
+        }
+
+        // 2. PowerShell `System.Net.Cookie("name", "value", ...)` (Windows Edge/Chrome "Copy as PowerShell")
+        val psMatches = Regex("""System\.Net\.Cookie\(\s*["']([^"']+)["']\s*,\s*["']([^"']*)["']""").findAll(unescaped)
+        for (m in psMatches) {
+            val k = m.groupValues[1].trim()
+            val v = m.groupValues[2].trim()
+            if (k.isNotEmpty() && v.isNotEmpty()) out[k] = v
+        }
+        if (out.isNotEmpty()) return out
+
+        // 3. cURL `-H 'cookie: ...'`, `-b '...'`, `--cookie '...'`, or Fetch `"cookie": "..."`
+        val headerPatterns = listOf(
+            Regex("""(?:-H|--header)\s+['"]cookie\s*:\s*([^'"]+)['"]""", RegexOption.IGNORE_CASE),
+            Regex("""(?:-b|--cookie)\s+['"]([^'"]+)['"]""", RegexOption.IGNORE_CASE),
+            Regex("""["']cookie["']\s*:\s*["']([^"']+)["']""", RegexOption.IGNORE_CASE),
+            Regex("""^\s*cookie\s*:\s*(.+)$""", setOf(RegexOption.IGNORE_CASE, RegexOption.MULTILINE)),
+        )
+        for (pattern in headerPatterns) {
+            for (m in pattern.findAll(unescaped)) {
+                collectSemicolonPairs(m.groupValues[1], out)
+            }
+        }
+        if (out.isNotEmpty()) return out
+
+        // 4. Tab-separated lines: Netscape `cookies.txt` (7 columns) or DevTools Application -> Cookies table (`name\tvalue\tdomain...`)
+        val lines = unescaped.lines().map(String::trim).filter { it.isNotEmpty() && !it.startsWith("#") }
+        if (lines.any { it.contains('\t') }) {
+            for (line in lines) {
+                val cols = line.split('\t')
+                if (cols.size >= 7 && (cols[1].equals("TRUE", true) || cols[1].equals("FALSE", true))) {
+                    // Netscape cookies.txt: domain, flag, path, secure, expiration, name, value
+                    val name = cols[5].trim()
+                    val value = cols[6].trim()
+                    if (name.isNotEmpty() && value.isNotEmpty()) out[name] = value
+                } else if (cols.size >= 2) {
+                    // DevTools Cookies table row: Name \t Value \t Domain \t Path ...
+                    val name = cols[0].trim()
+                    val value = cols[1].trim()
+                    if (name.isNotEmpty() && !name.contains(' ') && value.isNotEmpty() && name.lowercase() != "name") {
+                        out[name] = value
+                    }
+                }
+            }
+            if (out.isNotEmpty()) return out
+        }
+
+        // 5. Plain semicolon-separated `name=value; name2=value2`
+        collectSemicolonPairs(unescaped.removePrefix("Cookie:").removePrefix("cookie:").trim(), out)
+        return out
+    }
+
+    private fun collectSemicolonPairs(header: String, out: MutableMap<String, String>) {
+        header.split(';').forEach { part ->
+            val trimmed = part.trim()
+            val eq = trimmed.indexOf('=')
+            if (eq > 0) {
+                val name = trimmed.substring(0, eq).trim()
+                val value = trimmed.substring(eq + 1).trim()
+                if (name.isNotEmpty() && !name.contains(' ') && !name.contains('\n') && value.isNotEmpty()) {
+                    out[name] = value
+                }
+            }
+        }
+    }
+
     private val SIGNING_COOKIES = setOf("SAPISID", "__Secure-3PAPISID", "__Secure-1PAPISID")
 
     private const val COOKIES_FIREFOX = "cookies.sqlite"
@@ -283,6 +564,7 @@ internal object DesktopBrowserCookies {
     private const val FALLBACK_PASSWORD = "peanuts"
     private val SALT = "saltysalt".toByteArray(Charsets.UTF_8)
     private const val ITERATIONS = 1
+    private const val MAC_ITERATIONS = 1003
     private const val KEY_BITS = 128
     private const val PREFIX_BYTES = 3
     private const val GCM_NONCE_BYTES = 12
@@ -344,29 +626,51 @@ internal object DesktopBrowserCookies {
 
     private data class ChromiumRoot(val browser: String, val root: Path, val secretAttribute: String?)
 
-    private fun firefoxRoots(): List<Pair<String, Path>> = if (DesktopPlatform.isWindows) {
-        val roaming = System.getenv("APPDATA")?.let(Paths::get) ?: home.resolve("AppData/Roaming")
-        listOf(
-            "Firefox" to roaming.resolve("Mozilla/Firefox/Profiles"),
-            "LibreWolf" to roaming.resolve("librewolf/Profiles"),
-            "Waterfox" to roaming.resolve("Waterfox/Profiles"),
-            "Zen" to roaming.resolve("zen/Profiles"),
-        )
-    } else {
-        LINUX_FIREFOX_ROOTS.map { (name, relative) -> name to home.resolve(relative) }
+    private fun firefoxRoots(): List<Pair<String, Path>> = when {
+        DesktopPlatform.isWindows -> {
+            val roaming = System.getenv("APPDATA")?.let(Paths::get) ?: home.resolve("AppData/Roaming")
+            listOf(
+                "Firefox" to roaming.resolve("Mozilla/Firefox/Profiles"),
+                "LibreWolf" to roaming.resolve("librewolf/Profiles"),
+                "Waterfox" to roaming.resolve("Waterfox/Profiles"),
+                "Zen" to roaming.resolve("zen/Profiles"),
+            )
+        }
+        DesktopPlatform.isMac -> {
+            val appSupport = home.resolve("Library/Application Support")
+            listOf(
+                "Firefox" to appSupport.resolve("Firefox/Profiles"),
+                "LibreWolf" to appSupport.resolve("LibreWolf/Profiles"),
+                "Waterfox" to appSupport.resolve("Waterfox/Profiles"),
+                "Zen" to appSupport.resolve("zen/Profiles"),
+            )
+        }
+        else -> LINUX_FIREFOX_ROOTS.map { (name, relative) -> name to home.resolve(relative) }
     }
 
-    private fun chromiumRoots(): List<ChromiumRoot> = if (DesktopPlatform.isWindows) {
-        val local = System.getenv("LOCALAPPDATA")?.let(Paths::get) ?: home.resolve("AppData/Local")
-        listOf(
-            ChromiumRoot("Chrome", local.resolve("Google/Chrome/User Data"), null),
-            ChromiumRoot("Chromium", local.resolve("Chromium/User Data"), null),
-            ChromiumRoot("Edge", local.resolve("Microsoft/Edge/User Data"), null),
-            ChromiumRoot("Brave", local.resolve("BraveSoftware/Brave-Browser/User Data"), null),
-            ChromiumRoot("Vivaldi", local.resolve("Vivaldi/User Data"), null),
-        )
-    } else {
-        LINUX_CHROMIUM_ROOTS.map { (name, spec) ->
+    private fun chromiumRoots(): List<ChromiumRoot> = when {
+        DesktopPlatform.isWindows -> {
+            val local = System.getenv("LOCALAPPDATA")?.let(Paths::get) ?: home.resolve("AppData/Local")
+            listOf(
+                ChromiumRoot("Chrome", local.resolve("Google/Chrome/User Data"), null),
+                ChromiumRoot("Chromium", local.resolve("Chromium/User Data"), null),
+                ChromiumRoot("Edge", local.resolve("Microsoft/Edge/User Data"), null),
+                ChromiumRoot("Brave", local.resolve("BraveSoftware/Brave-Browser/User Data"), null),
+                ChromiumRoot("Vivaldi", local.resolve("Vivaldi/User Data"), null),
+            )
+        }
+        DesktopPlatform.isMac -> {
+            val appSupport = home.resolve("Library/Application Support")
+            listOf(
+                ChromiumRoot("Chrome", appSupport.resolve("Google/Chrome"), "Chrome Safe Storage"),
+                ChromiumRoot("Chromium", appSupport.resolve("Chromium"), "Chromium Safe Storage"),
+                ChromiumRoot("Brave", appSupport.resolve("BraveSoftware/Brave-Browser"), "Brave Safe Storage"),
+                ChromiumRoot("Edge", appSupport.resolve("Microsoft Edge"), "Microsoft Edge Safe Storage"),
+                ChromiumRoot("Arc", appSupport.resolve("Arc/User Data"), "Arc Safe Storage"),
+                ChromiumRoot("Vivaldi", appSupport.resolve("Vivaldi"), "Vivaldi Safe Storage"),
+            )
+        }
+        else -> LINUX_CHROMIUM_ROOTS.map { (name, spec) ->
             ChromiumRoot(name, home.resolve(spec.first), spec.second)
         }
     }

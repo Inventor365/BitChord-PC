@@ -42,10 +42,19 @@ object AppUpdateChecker {
 
     private const val CACHE_SUBDIR = "updates"
 
-    private const val LATEST_RELEASE_URL =
-        "https://api.github.com/repos/Inventor365/BitChord/releases/latest"
+    private const val DEFAULT_RELEASE_PAGE =
+        "https://github.com/Inventor365/BitChord-PC/releases/latest"
 
-    private val json = Json { ignoreUnknownKeys = true }
+    private const val OTA_CLEAN_URL =
+        "https://raw.githubusercontent.com/Inventor365/Bitchord-OTA/refs/heads/main/ota.json"
+
+    private const val REPO_OTA_URL =
+        "https://raw.githubusercontent.com/Inventor365/BitChord-PC/main/ota.json"
+
+    private const val LATEST_RELEASE_URL =
+        "https://api.github.com/repos/Inventor365/BitChord-PC/releases/latest"
+
+    private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
     private val _available = MutableStateFlow<UpdateInfo?>(null)
     val available = _available.asStateFlow()
@@ -66,22 +75,129 @@ object AppUpdateChecker {
     private var downloadCancelled = false
 
     suspend fun check() = withContext(Dispatchers.IO) {
-        runCatching {
-            val request = Request.Builder().url(LATEST_RELEASE_URL).build()
-            val body = Http.client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) null else response.body?.string()
-            } ?: return@runCatching
-            val release = json.parseToJsonElement(body) as? JsonObject ?: return@runCatching
-            val tag = release["tag_name"]?.jsonPrimitive?.contentOrNull ?: return@runCatching
-            val url = release["html_url"]?.jsonPrimitive?.contentOrNull ?: return@runCatching
-            val apkUrl = apkAssetUrl(release)
-            val notes = release["body"]?.jsonPrimitive?.contentOrNull
-            val latest = tag.removePrefix("v")
-            if (isNewer(latest, BuildConfig.VERSION_NAME)) {
-                _available.value = UpdateInfo(latest, url, apkUrl, notes)
+        val endpoints = listOfNotNull(
+            BuildConfig.OTA_JSON_URL.takeIf { it.isNotBlank() },
+            OTA_CLEAN_URL,
+            REPO_OTA_URL,
+            LATEST_RELEASE_URL,
+        ).distinct()
+
+        for (endpoint in endpoints) {
+            val info = runCatching { fetchUpdateFrom(endpoint) }.getOrNull()
+            if (info != null) {
+                if (isNewer(info.version, BuildConfig.VERSION_NAME)) {
+                    _available.value = info
+                }
+                return@withContext
             }
         }
     }
+
+    private fun fetchText(url: String): String? = runCatching {
+        val request = Request.Builder().url(url).build()
+        Http.client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) null else response.body?.string()
+        }
+    }.getOrNull()
+
+    internal fun parseOtaPayload(
+        payload: JsonObject,
+        isTv: Boolean = BuildConfig.UPDATE_APK_PREFIX.contains("TV", ignoreCase = true),
+        supportedAbis: List<String> = runCatching { Build.SUPPORTED_ABIS?.toList() }.getOrNull().orEmpty(),
+        fetchExternalText: (String) -> String? = { null },
+    ): UpdateInfo? {
+        val rawVersion = payload.string("version")
+            ?: payload.string("tag_name")
+            ?: payload.string("latestVersion")
+            ?: return null
+        val version = rawVersion.trim().removePrefix("v")
+        if (version.isEmpty()) return null
+
+        val releaseUrl = payload.string("releaseUrl")
+            ?: payload.string("html_url")
+            ?: payload.string("url")
+            ?: DEFAULT_RELEASE_PAGE
+
+        val apkUrl = resolveApkUrl(payload, isTv, supportedAbis)
+
+        val inlineNotes = extractChangelogText(payload)
+        val externalNotes = payload.string("changelogUrl")?.takeIf { it.startsWith("http") }?.let(fetchExternalText)
+            ?.trim()?.takeIf { it.isNotEmpty() }
+        val notes = when {
+            !inlineNotes.isNullOrBlank() && !externalNotes.isNullOrBlank() && inlineNotes != externalNotes ->
+                "$inlineNotes\n\n$externalNotes"
+            !inlineNotes.isNullOrBlank() -> inlineNotes
+            else -> externalNotes
+        }
+
+        return UpdateInfo(
+            version = version,
+            releaseUrl = releaseUrl,
+            apkUrl = apkUrl,
+            notes = notes,
+        )
+    }
+
+    private fun fetchUpdateFrom(endpoint: String): UpdateInfo? {
+        val body = fetchText(endpoint) ?: return null
+        val obj = runCatching { json.parseToJsonElement(body) as? JsonObject }.getOrNull() ?: return null
+        return parseOtaPayload(
+            payload = obj,
+            fetchExternalText = ::fetchText,
+        )
+    }
+
+    private fun extractChangelogText(obj: JsonObject): String? {
+        for (key in listOf("changelog", "changelogs", "notes", "body")) {
+            val el = obj[key] ?: continue
+            runCatching { el.jsonPrimitive.contentOrNull?.trim() }.getOrNull()
+                ?.takeIf { it.isNotEmpty() }
+                ?.let { return it }
+            runCatching {
+                el.jsonArray.mapNotNull { item -> item.jsonPrimitive.contentOrNull?.trim() }
+                    .filter { it.isNotEmpty() }
+                    .joinToString("\n")
+            }.getOrNull()?.takeIf { it.isNotEmpty() }?.let { return it }
+        }
+        return null
+    }
+
+    private fun resolveApkUrl(
+        obj: JsonObject,
+        isTv: Boolean,
+        supportedAbis: List<String>,
+    ): String? {
+        val downloads = obj["downloads"] as? JsonObject
+        val platformNode = downloads?.get(if (isTv) "tv" else "android")
+            ?: obj[if (isTv) "tv" else "android"]
+        when (platformNode) {
+            is JsonObject -> {
+                platformNode.string("universal")
+                    ?: platformNode.string("apk")
+                    ?: platformNode.string("url")
+                    ?: platformNode.string("downloadUrl")
+                    ?: supportedAbis.firstNotNullOfOrNull { abi -> platformNode.string(abi) }
+            }
+            else -> runCatching { platformNode?.jsonPrimitive?.contentOrNull?.trim() }.getOrNull()
+        }?.takeIf { it.isNotEmpty() }?.let { return it }
+
+        if (isTv) {
+            (obj.string("tvDownloadUrl") ?: obj.string("tvApkUrl") ?: obj.string("tvUrl"))
+                ?.let { return it }
+        } else {
+            (obj.string("androidDownloadUrl") ?: obj.string("androidUrl") ?: obj.string("apkUrl"))
+                ?.let { return it }
+        }
+
+        (obj.string("downloadUrl") ?: obj.string("download_url"))
+            ?.takeIf { !isTv || it.contains("TV", ignoreCase = true) }
+            ?.let { return it }
+
+        return apkAssetUrl(obj, if (isTv) "BitChordTV-" else "BitChord-", supportedAbis)
+    }
+
+    private fun JsonObject.string(key: String): String? =
+        runCatching { this[key]?.jsonPrimitive?.contentOrNull?.trim() }.getOrNull()?.takeIf { it.isNotEmpty() }
 
     /**
      * Wipes any APK left over from a previous run. Called once at cold start
@@ -108,20 +224,24 @@ object AppUpdateChecker {
      * [UpdateInfo.apkUrl] null and the UI falls back to opening the releases
      * page.
      */
-    private fun apkAssetUrl(release: JsonObject): String? = runCatching {
+    private fun apkAssetUrl(
+        release: JsonObject,
+        prefix: String = BuildConfig.UPDATE_APK_PREFIX,
+        supportedAbis: List<String> = runCatching { Build.SUPPORTED_ABIS?.toList() }.getOrNull().orEmpty(),
+    ): String? = runCatching {
         val apks = release["assets"]?.jsonArray
             ?.mapNotNull { it as? JsonObject }
             ?.mapNotNull { asset ->
                 val name = asset["name"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
                 val url = asset["browser_download_url"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
-                val ours = name.startsWith(BuildConfig.UPDATE_APK_PREFIX, ignoreCase = true) &&
+                val ours = name.startsWith(prefix, ignoreCase = true) &&
                     name.endsWith(".apk", ignoreCase = true) &&
                     asset["state"]?.jsonPrimitive?.contentOrNull == "uploaded"
                 if (ours) name.removeSuffix(".apk").removeSuffix(".APK") to url else null
             }
             .orEmpty()
         apks.firstOrNull { (name, _) -> '_' !in name }?.second
-            ?: Build.SUPPORTED_ABIS.firstNotNullOfOrNull { abi ->
+            ?: supportedAbis.firstNotNullOfOrNull { abi ->
                 apks.firstOrNull { (name, _) -> name.endsWith("_$abi") }?.second
             }
     }.getOrNull()

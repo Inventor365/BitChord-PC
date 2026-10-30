@@ -158,8 +158,8 @@ private fun SpotifySection(spotify: DesktopSpotifyConnection) {
         } else if (spotify.canSignIn && !spotify.signingIn) {
             DesktopCardRule()
             PanelActionRow(
-                title = "Paste a cookie instead",
-                subtitle = "Copy sp_dc from open.spotify.com yourself",
+                title = "Sign in with browser link or paste session",
+                subtitle = "Copy the Spotify login link, import from your browser, or paste sp_dc / cURL",
                 destructive = false,
                 onClick = spotify.onPasteCookie,
             )

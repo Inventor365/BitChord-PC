@@ -35,6 +35,12 @@ val lastfmSecret: String = (
         ?: ""
     ).trim()
 
+val otaJsonUrl: String = (
+    localProps.getProperty("OTA_JSON_URL")
+        ?: System.getenv("OTA_JSON_URL")
+        ?: "https://raw.githubusercontent.com/Inventor365/Bitchord-OTA/refs/heads/main/ota.json?token=GHSAT0AAAAAADUIC3ZQ4LG6AXEKYTMTOL2I2XE3AZA"
+    ).trim()
+
 /*
  * Where Listen Together's party server lives. Not a credential — it is a public
  * URL, and every device in a party has to be pointed at the same one — but it is
@@ -84,6 +90,7 @@ android {
         // the same GitHub release, told apart by file name. See
         // AppUpdateChecker.apkAssetUrl.
         buildConfigField("String", "UPDATE_APK_PREFIX", "\"BitChord-\"")
+        buildConfigField("String", "OTA_JSON_URL", "\"${otaJsonUrl.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
     }
 
     splits {

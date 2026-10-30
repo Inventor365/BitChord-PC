@@ -7,7 +7,7 @@ on:
       version:
         description: "Version to stamp into the packages, without the leading v"
         required: true
-        default: "1.8.2"
+        default: "1.9"
       draft:
         description: "Create as draft (false publishes immediately)"
         type: boolean

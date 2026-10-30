@@ -22,10 +22,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.ContentPaste
 import androidx.compose.material.icons.rounded.ManageAccounts
+import androidx.compose.material.icons.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -288,9 +292,11 @@ internal fun DesktopSignInDialog(
     onDismiss: () -> Unit,
 ) {
     var profiles by remember { mutableStateOf<List<DesktopBrowserCookies.Profile>?>(null) }
+    var refreshCount by remember { mutableStateOf(0) }
     var pasting by remember { mutableStateOf(false) }
     var pasted by remember { mutableStateOf("") }
-    LaunchedEffect(Unit) {
+    var linkCopied by remember { mutableStateOf(false) }
+    LaunchedEffect(refreshCount) {
         profiles = withContext(Dispatchers.IO) {
             DesktopBrowserCookies.profiles().filterNot {
                 DesktopPlatform.isWindows && it.family == DesktopBrowserCookies.Family.CHROMIUM
@@ -314,7 +320,7 @@ internal fun DesktopSignInDialog(
         val shape = RoundedCornerShape(20.dp)
         Column(
             Modifier
-                .widthIn(max = 520.dp)
+                .widthIn(max = 540.dp)
                 .fillMaxWidth()
                 .clip(shape)
                 .desktopBarGlass(shape)
@@ -331,24 +337,102 @@ internal fun DesktopSignInDialog(
                     color = Color.White,
                     modifier = Modifier.weight(1f).padding(top = 10.dp),
                 )
+                if (!pasting) {
+                    IconButton(onClick = { profiles = null; refreshCount++ }) {
+                        Icon(Icons.Rounded.Refresh, "Refresh browsers", tint = DesktopSecondary)
+                    }
+                }
                 IconButton(onClick = onDismiss) {
                     Icon(Icons.Rounded.Close, DesktopStrings["close", "Close"], tint = DesktopSecondary)
                 }
             }
             Text(
                 if (webSignIn) {
-                    "Sign in with Google in a BitChord window, then choose \"Use this profile\"."
+                    "Sign in with Google in a BitChord window, open or copy the sign-in link into your own browser, or import an existing browser session."
                 } else {
                     DesktopStrings[
                         "d_google_signs_in_inside_a_browser",
-                        "Google signs in inside a browser and hands back a session. Pick a browser " +
-                            "here that is already signed in and BitChord will use its session.",
+                        "Google signs in inside a browser and hands back a session. Open or copy the sign-in link into your browser, then import the browser profile or paste the session below.",
                     ]
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = DesktopSecondary,
                 modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 6.dp, bottom = 10.dp),
             )
+            // Copyable & openable browser sign-in link bar
+            Row(
+                Modifier
+                    .padding(horizontal = 22.dp)
+                    .padding(bottom = 10.dp)
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color.White.copy(alpha = 0.07f))
+                    .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(12.dp))
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        "Browser sign-in link",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color.White,
+                    )
+                    Text(
+                        "accounts.google.com → music.youtube.com",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = DesktopSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                Row(
+                    Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color.White.copy(alpha = 0.10f))
+                        .clickable {
+                            linkCopied = DesktopBrowserCookies.copyToClipboard(DesktopBrowserCookies.YOUTUBE_SIGN_IN_URL)
+                        }
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        if (linkCopied) Icons.Rounded.Check else Icons.Rounded.ContentCopy,
+                        null,
+                        tint = if (linkCopied) DesktopAccent else Color.White,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        if (linkCopied) "Copied!" else "Copy link",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (linkCopied) DesktopAccent else Color.White,
+                    )
+                }
+                Row(
+                    Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(DesktopAccent.copy(alpha = 0.20f))
+                        .clickable {
+                            DesktopExternalLinks.open(DesktopBrowserCookies.YOUTUBE_SIGN_IN_URL)
+                        }
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        Icons.Rounded.OpenInNew,
+                        null,
+                        tint = DesktopAccent,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        "Open browser",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = DesktopAccent,
+                    )
+                }
+            }
             error?.let {
                 Text(
                     it,
@@ -360,7 +444,10 @@ internal fun DesktopSignInDialog(
             when {
                 pasting -> {
                     Text(
-                        DesktopStrings["d_paste_the_cookie_header_for_music_youtube_com", "Paste the Cookie header for music.youtube.com."],
+                        "After signing in at music.youtube.com in your browser, copy & paste any of these:\n" +
+                            "• DevTools (F12) → Application / Storage → Cookies → select all (Ctrl+A) & copy (Ctrl+C)\n" +
+                            "• DevTools (F12) → Network → right-click any request → Copy → Copy as cURL (or PowerShell)\n" +
+                            "• Cookie-Editor extension → Export (JSON, Header string, or Netscape) or raw Cookie header",
                         style = MaterialTheme.typography.bodySmall,
                         color = DesktopSecondary,
                         modifier = Modifier.padding(horizontal = 22.dp),
@@ -381,8 +468,23 @@ internal fun DesktopSignInDialog(
                     )
                     Row(
                         Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
+                        TextButton(
+                            onClick = {
+                                val clip = DesktopBrowserCookies.readFromClipboard().orEmpty()
+                                if (clip.isNotBlank()) {
+                                    pasted = clip
+                                    onPaste(clip)
+                                }
+                            },
+                            enabled = busy == null,
+                        ) {
+                            Icon(Icons.Rounded.ContentPaste, null, tint = DesktopAccent, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Paste from clipboard & sign in", color = DesktopAccent)
+                        }
+                        Spacer(Modifier.weight(1f))
                         TextButton(onClick = { pasting = false }) { Text(DesktopStrings["back", "Back"], color = DesktopSecondary) }
                         TextButton(
                             onClick = { onPaste(pasted.trim()) },
@@ -413,7 +515,7 @@ internal fun DesktopSignInDialog(
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Column(Modifier.weight(1f)) {
-                                    Text("Sign in with Google", color = Color.White)
+                                    Text("Sign in with Google (in-app window)", color = Color.White)
                                     Text(
                                         if (busy == WEB_SIGN_IN) {
                                             "Finish in the sign-in window, then choose \"Use this profile\""
@@ -472,7 +574,14 @@ internal fun DesktopSignInDialog(
                                 modifier = Modifier.size(18.dp),
                             )
                             Spacer(Modifier.width(14.dp))
-                            Text(DesktopStrings["d_paste_a_cookie_instead", "Paste a cookie instead"], color = Color.White)
+                            Column(Modifier.weight(1f)) {
+                                Text("Paste session from browser (Cookie / cURL / Table)", color = Color.White)
+                                Text(
+                                    "Sign in using your browser, then paste cURL, cookies table, JSON, or Cookie header",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = DesktopSecondary,
+                                )
+                            }
                         }
                     }
                 }

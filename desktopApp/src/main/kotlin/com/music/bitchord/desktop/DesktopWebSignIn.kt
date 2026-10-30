@@ -100,7 +100,16 @@ internal object DesktopWebSignIn {
         init {
             stage.title = service.title
             val startOver = Button("Start over").apply { setOnAction { load() } }
-            val bar = HBox(8.0, startOver, Region().also { HBox.setHgrow(it, Priority.ALWAYS) }, where)
+            val copyLink = Button("Copy link").apply {
+                setOnAction {
+                    DesktopBrowserCookies.copyToClipboard(service.startUrl)
+                    text = "Copied!"
+                }
+            }
+            val openInBrowser = Button("Open in browser").apply {
+                setOnAction { DesktopExternalLinks.open(service.startUrl) }
+            }
+            val bar = HBox(8.0, startOver, copyLink, openInBrowser, Region().also { HBox.setHgrow(it, Priority.ALWAYS) }, where)
             bar.padding = Insets(8.0)
             if (service == Service.YOUTUBE_MUSIC) {
                 confirm.isDefaultButton = true

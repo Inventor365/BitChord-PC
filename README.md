@@ -78,12 +78,12 @@
 
 | Platform | Architectures | Packages on [Releases](https://github.com/Inventor365/BitChord-PC/releases/latest) |
 | :--- | :--- | :--- |
-| **Android (Phone & Tablet)** | Universal, `arm64-v8a`, `armeabi-v7a`, `x86_64` | `BitChord-v1.8.2.apk`, `BitChord-v1.8.2_<abi>.apk` |
-| **Android TV / Fire TV** | Universal, `arm64-v8a`, `armeabi-v7a`, `x86_64` | `BitChordTV-v1.8.2.apk`, `BitChordTV-v1.8.2_<abi>.apk` |
-| **Wear OS** | Universal | `BitChordWear-v1.8.2.apk` (also embedded in the phone APK) |
-| **Windows 10 / 11** | `x64` | `BitChord-1.8.2-windows-x64-setup.exe`, `.msi`, `-portable.zip` |
-| **macOS 12+** | Apple Silicon (`arm64`) & Intel (`x64`) | `BitChord-1.8.2-macos-arm64.dmg` / `.pkg` / `.zip`, `macos-x64.dmg` / `.pkg` / `.zip` |
-| **Linux** | `x86_64` / `amd64` | `BitChord-1.8.2-linux-x86_64.AppImage`, `-linux-amd64.deb`, `-linux-x86_64.rpm` |
+| **Android (Phone & Tablet)** | Universal, `arm64-v8a`, `armeabi-v7a`, `x86_64` | `BitChord-v1.9.apk`, `BitChord-v1.9_<abi>.apk` |
+| **Android TV / Fire TV** | Universal, `arm64-v8a`, `armeabi-v7a`, `x86_64` | `BitChordTV-v1.9.apk`, `BitChordTV-v1.9_<abi>.apk` |
+| **Wear OS** | Universal | `BitChordWear-v1.9.apk` (also embedded in the phone APK) |
+| **Windows 10 / 11** | `x64` | `BitChord-1.9-windows-x64-setup.exe`, `.msi`, `-portable.zip` |
+| **macOS 12+** | Apple Silicon (`arm64`) & Intel (`x64`) | `BitChord-1.9-macos-arm64.dmg` / `.pkg` / `.zip`, `macos-x64.dmg` / `.pkg` / `.zip` |
+| **Linux** | `x86_64` / `amd64` | `BitChord-1.9-linux-x86_64.AppImage`, `-linux-amd64.deb`, `-linux-x86_64.rpm` |
 
 For detailed desktop build and packaging instructions, see [DESKTOP.md](DESKTOP.md).
 
@@ -91,19 +91,22 @@ For detailed desktop build and packaging instructions, see [DESKTOP.md](DESKTOP.
 
 <h1><a id="whats-extra"></a>What's Extra Over Official</h1>
 
-This repository tracks [`kushagrasinghx/BitChord`](https://github.com/kushagrasinghx/BitChord) (`v1.8.2` + `web-player`) while restoring the native desktop client and integrating high-value community pull requests ahead of upstream:
+This repository tracks [`kushagrasinghx/BitChord`](https://github.com/kushagrasinghx/BitChord) (**`v1.9`** + `web-player`) while restoring the native desktop client and integrating high-value community pull requests ahead of upstream:
 
 - **Native Desktop Client Restored (`:desktopApp` & `:desktopUi`)**:
   - Native packages for **Windows (`x64` `.exe`, `.msi`, `portable.zip`)**, **macOS (`arm64` & `x64` `.dmg`, `.pkg`, `.zip`)**, and **Linux (`x86_64` `.AppImage`, `.deb`, `.rpm`)**.
   - Native audio output (`WASAPI`, `CoreAudio`, `ALSA`/`PulseAudio`/`PipeWire`), 10-band parametric EQ, system media integration (`SMTC`, `MPRIS2`, macOS Now Playing), Discord Rich Presence IPC, and local Beat This! (`final0`) ONNX Automix analysis.
-- **Bit-Perfect Output Modes (`#1194`)**: Android 14 bit-perfect USB mixer bypass, built-in DAP AAudio exclusive mode, and custom direct USB Audio Class 1.0/2.0 hardware driver with hardware DAC volume HUD.
-- **Sequential Source Fallback & Interactive Quality Badge (`#1200`)**: Queries sources in rank order without redundant parallel downloads, automatically falls back to the next source when an auditioned stream is rejected or stalls, drops failed addon calls even when cancelled, and lets you tap the lossless badge on the player to reveal the active source name.
+  - **Easy Browser Sign-In Link & Universal Session Paste**: Copyable & one-click browser sign-in links for **YouTube Music (Google)** and **Spotify**, one-click browser profile import across Windows, macOS (Keychain), and Linux, plus a **Universal Smart Paste / Paste from Clipboard** flow that accepts DevTools Cookies table rows (`Ctrl+A`, `Ctrl+C`), *Copy as cURL* (Bash/CMD), *Copy as PowerShell*, *Copy as fetch*, Cookie-Editor JSON, Netscape `cookies.txt`, or raw cookie headers.
+- **Bit-Perfect Output Modes & Low-Spec DAC Conversion (`v1.9`)**: Android 14 bit-perfect USB mixer bypass, built-in DAP AAudio exclusive mode, custom direct USB Audio Class 1.0/2.0 hardware driver with hardware DAC volume HUD, and automatic format conversion for limited-rate DACs.
+- **Full Podcast Playback & Keep Playlists Updated (`v1.9`)**: Browse and stream full YouTube Music podcast episode lists, decode ALAC natively via FFmpeg, and automatically sync new songs in downloaded playlists (`PlaylistSync`).
+- **Interactive Quality Badge & Shared Call Hardening (`#1200`)**: Tap the lossless badge on the player to toggle the active source name, and drop failed addon calls even when cancelled.
 - **External Music Links (`#1145`)**: Open Spotify, Apple Music, Deezer, and SoundCloud links directly inside BitChord, matched automatically on YouTube Music.
 - **Save Queue & Radio as Playlist (`#1174`)**: Save your current queue or active radio session as a new playlist in one tap.
 - **Samsung Galaxy Buds Control Panel (`#983`)**: Control ANC, Ambient Sound, 360 Audio, equalizer presets, and view earbud/case battery levels directly from the player's audio output sheet.
 - **Chromecast Queue Window & Downloaded Track Casting (`#1186`)**: Casts bounded queue windows, resolves downloaded tracks to their remote stream URLs for Chromecast, and keeps cast session state accurate.
-- **Android TV Low-Memory Performance Mode (`#1044`)**: Adaptive artwork sizing and memory budgets for smooth playback and navigation on low-RAM Android TV and Fire TV devices.
-- **Privacy & Customization Enhancements**:
+- **Android TV Low-Memory Performance Mode & AMOLED Player (`#1044` + `v1.9`)**: Adaptive artwork sizing, memory budgets, and AMOLED Now Playing backdrop option for Android TV and Fire TV devices.
+- **Privacy, Matching & Customization Enhancements**:
+  - **Turkish Character Normalization for Song Matching (`#1223`)** (`ş→s`, `ğ→g`, `ö→o`, `ü→u`, `ç→c`, `ı→i`).
   - **Block Explicit Songs (`#801`)** with queue/AutoPlay filtering and allow-once prompts.
   - **Fully Disable Song Caching (`#985`)** (`0 MB` option + custom step slider).
   - **Auto-Download Playlist Songs (`#935`)** when adding tracks to downloaded playlists.
